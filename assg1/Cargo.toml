@@ -1,7 +1,10 @@
 [package]
 name = "assg1"
+description = "Implementation and study of Evolutionary Algorithms"
 version = "0.1.0"
 authors = ["Karol Belina <karolbelina@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+quicli = "0.4"
+structopt = "0.2"
