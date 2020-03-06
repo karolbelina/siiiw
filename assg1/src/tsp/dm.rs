@@ -20,19 +20,18 @@ impl DistanceMatrix {
         return DistanceMatrix(matrix);
     }
 
-    pub fn get(&self, from: usize, to: usize) -> Result<f64, Error> {
+    pub fn get(&self, from: usize, to: usize) -> Option<f64> {
         if from == to {
-            Ok(0.0)
+            Some(0.0)
         } else {
             let (lower, greater) = if from > to {
                 (to, from)
             } else {
                 (from, to)
             };
-            let distance = self.0.get(lower)
+            self.0.get(lower)
                 .and_then(|vector| vector.get(greater))
-                .ok_or_else(|| format_err!("invalid node index"))?;
-            Ok(*distance)
+                .map(|ref_distance| *ref_distance)
         }
     }
 }

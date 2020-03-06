@@ -1,10 +1,10 @@
 use quicli::prelude::*;
 
-use super::ProblemInstance;
+use super::TSPInstance;
 use super::dm::DistanceMatrix;
 use std::path::PathBuf;
 
-pub fn read_problem_instance(tsp_path: &PathBuf) -> Result<ProblemInstance, Error> {
+pub fn read_problem_instance(tsp_path: &PathBuf) -> Result<TSPInstance, Error> {
     enum CoordinateSystem {
         Euclidean,
         Geographical,
@@ -122,7 +122,7 @@ pub fn read_problem_instance(tsp_path: &PathBuf) -> Result<ProblemInstance, Erro
     let duration = start.elapsed();
     info!("parsed the problem instance in {:?}", duration);
 
-    Ok(ProblemInstance {
+    Ok(TSPInstance {
         name: name,
         comment: comment,
         dimension: dimension,

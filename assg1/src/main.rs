@@ -1,6 +1,7 @@
 use quicli::prelude::*;
 use structopt::StructOpt;
 
+mod problem;
 mod tsp;
 
 use std::path::PathBuf;
