@@ -1,5 +1,3 @@
-extern crate rand;
-
 mod dm;
 pub mod parser;
 
@@ -33,14 +31,27 @@ impl Problem for TSP {
     }
 }
 
-use crate::sf::ea::{Mutate};
+use crate::sf;
+
+pub struct Randomize;
+
+impl sf::Randomize<TSP> for Randomize {
+    fn randomize(&self, problem: &TSP) -> Vec<usize> {
+        use rand::seq::SliceRandom;
+
+        let mut vec: Vec<usize> = (0..problem.dimension).collect();
+        vec.shuffle(&mut rand::thread_rng());
+        return vec;
+    }
+}
+
 use std::borrow::Cow;
 
 struct Swap {
     probability: f64,
 }
 
-impl Mutate<TSP> for Swap {
+impl sf::Mutate<TSP> for Swap {
     fn mutate<'a>(&self, individual: &'a Vec<usize>) -> Cow<'a, Vec<usize>> {
         use rand::Rng;
 
@@ -62,19 +73,5 @@ impl Mutate<TSP> for Swap {
         }
 
         return Cow::Borrowed(individual);
-    }
-}
-
-use crate::sf;
-
-pub struct Randomize;
-
-impl sf::Randomize<TSP> for Randomize {
-    fn randomize(&self, problem: &TSP) -> Vec<usize> {
-        use rand::seq::SliceRandom;
-
-        let mut vec: Vec<usize> = (0..problem.dimension).collect();
-        vec.shuffle(&mut rand::thread_rng());
-        return vec;
     }
 }
