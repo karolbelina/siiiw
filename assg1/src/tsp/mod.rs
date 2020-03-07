@@ -1,31 +1,62 @@
+extern crate rand;
+
 mod dm;
-pub mod reader;
+pub mod parser;
 
 use dm::DistanceMatrix;
 
-pub struct TSPInstance {
+pub struct TSP {
     pub name: Option<String>,
-    pub comment: Option<String>,
-    pub dimension: usize,
-    pub dm: DistanceMatrix,
+    dimension: usize,
+    dm: DistanceMatrix,
 }
-
-pub struct TSPSolution(Vec<usize>);
 
 use crate::problem::Problem;
 
-impl Problem for TSPInstance {
-    type Solution = TSPSolution;
+impl Problem for TSP {
+    type Solution = Vec<usize>;
     type Measure = f64;
 
-    fn fitness(&self, solution: TSPSolution) -> f64 {
+    fn fitness(&self, solution: Vec<usize>) -> f64 {
         use std::f64::INFINITY;
 
         (0..self.dimension).zip((0..self.dimension).cycle().skip(1))
-            .map(|(i, j)| solution.0.get(i)
-                .and_then(|a| solution.0.get(j)
+            .map(|(i, j)| solution.get(i)
+                .and_then(|a| solution.get(j)
                     .and_then(|b| self.dm.get(*a, *b))))
             .sum::<Option<f64>>()
             .unwrap_or(INFINITY)
+    }
+}
+
+use crate::sf::ea::{Mutate};
+use std::borrow::Cow;
+
+struct Swap {
+    probability: f64,
+}
+
+impl Mutate<TSP> for Swap {
+    fn mutate<'a>(&self, individual: &'a Vec<usize>) -> Cow<'a, Vec<usize>> {
+        use rand::Rng;
+
+        let mut rng = rand::thread_rng();
+        if rng.gen_range(0.0, 1.0) < self.probability {
+            if individual.len() > 1 {
+                use rand::distributions::{Distribution, Uniform};
+
+                let between = Uniform::from(0..individual.len());
+                let first = between.sample(&mut rng);
+                let second = between.sample(&mut rng);
+
+                if first != second {
+                    let mut mutated_individual = individual.clone();
+                    mutated_individual.swap(first, second);
+                    return Cow::Owned(mutated_individual);
+                }
+            }
+        }
+
+        return Cow::Borrowed(individual);
     }
 }

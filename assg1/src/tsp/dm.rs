@@ -1,11 +1,17 @@
 use quicli::prelude::*;
 
-pub struct DistanceMatrix(Vec<Vec<f64>>);
+pub struct DistanceMatrix {
+    internal: Vec<Vec<f64>>,
+    size: usize,
+}
 
 impl DistanceMatrix {
     pub fn new<T, F: Fn(&T, &T) -> f64>(nodes: &Vec<T>, distance_fn: F) -> Self {
         if nodes.is_empty() {
-            return DistanceMatrix(Vec::new());
+            return DistanceMatrix {
+                internal: Vec::new(),
+                size: 0,
+            };
         }
         let size = nodes.len();
         let mut matrix: Vec<Vec<f64>> = Vec::new();
@@ -17,7 +23,10 @@ impl DistanceMatrix {
             matrix.push(vector);
         }
         info!("created the distance matrix");
-        return DistanceMatrix(matrix);
+        return DistanceMatrix {
+            internal: matrix,
+            size: size,
+        };
     }
 
     pub fn get(&self, from: usize, to: usize) -> Option<f64> {
@@ -29,8 +38,8 @@ impl DistanceMatrix {
             } else {
                 (from, to)
             };
-            self.0.get(lower)
-                .and_then(|vector| vector.get(greater))
+            self.internal.get(lower)
+                .and_then(|vector| vector.get(self.size - 1 - greater))
                 .map(|ref_distance| *ref_distance)
         }
     }

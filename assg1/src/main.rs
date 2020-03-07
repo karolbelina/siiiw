@@ -2,6 +2,7 @@ use quicli::prelude::*;
 use structopt::StructOpt;
 
 mod problem;
+mod sf;
 mod tsp;
 
 use std::path::PathBuf;
@@ -19,9 +20,20 @@ fn main() -> CliResult {
     let config = Config::from_args();
     config.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
 
-    use tsp::reader;
+    use problem::Problem;
 
-    let problem = reader::read_problem_instance(&config.tsp_path)?;
+    let problem = tsp::parser::parse_problem_instance(&config.tsp_path)?;
+    // println!("{}", problem.fitness(problem.random_solution()));
+
+    use std::time::Duration;
+    use sf::SolutionFinder;
+
+    // let random = sf::Random::new(problem);
+    // random.run(Duration::from_secs(2));
+    // let best = random.get_best_solution();
+
+    // let greedy = sf::Greedy::new(problem);
+    // let evolutionary = sf::Evolutionary
 
     Ok(())
 }

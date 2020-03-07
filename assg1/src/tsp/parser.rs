@@ -1,10 +1,10 @@
 use quicli::prelude::*;
 
-use super::TSPInstance;
+use super::TSP;
 use super::dm::DistanceMatrix;
 use std::path::PathBuf;
 
-pub fn read_problem_instance(tsp_path: &PathBuf) -> Result<TSPInstance, Error> {
+pub fn parse_problem_instance(tsp_path: &PathBuf) -> Result<TSP, Error> {
     enum CoordinateSystem {
         Euclidean,
         Geographical,
@@ -22,7 +22,6 @@ pub fn read_problem_instance(tsp_path: &PathBuf) -> Result<TSPInstance, Error> {
     }
 
     let mut name: Option<String> = None;
-    let mut comment: Option<String> = None;
     let mut dimension: Option<usize> = None;
     let mut coord_system: Option<CoordinateSystem> = None;
 
@@ -39,9 +38,6 @@ pub fn read_problem_instance(tsp_path: &PathBuf) -> Result<TSPInstance, Error> {
                     if line.starts_with("NAME") {
                         name = Some(line[semicolon_index + 1..].trim_start().to_owned());
                         info!("parsed name: {:?}", name.as_ref().unwrap());
-                    } else if line.starts_with("COMMENT") {
-                        comment = Some(line[semicolon_index + 1..].trim_start().to_owned());
-                        info!("parsed comment: {:?}", comment.as_ref().unwrap());
                     } else if line.starts_with("DIMENSION") {
                         dimension = Some(line[semicolon_index + 1..].trim().parse::<usize>()?);
                         info!("parsed dimension: {:?}", dimension.unwrap());
@@ -122,9 +118,8 @@ pub fn read_problem_instance(tsp_path: &PathBuf) -> Result<TSPInstance, Error> {
     let duration = start.elapsed();
     info!("parsed the problem instance in {:?}", duration);
 
-    Ok(TSPInstance {
+    Ok(TSP {
         name: name,
-        comment: comment,
         dimension: dimension,
         dm: dm,
     })
