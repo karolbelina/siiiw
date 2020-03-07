@@ -1,3 +1,4 @@
+use quicli::prelude::*;
 use crate::problem::Problem;
 
 pub mod ea;
@@ -27,7 +28,7 @@ where
     P: Problem,
     R: Randomize<P>
 {
-    fn new(problem: P, randomize: R) -> Random<P, R> {
+    pub fn new(problem: P, randomize: R) -> Random<P, R> {
         Random {
             problem: problem,
             randomize: randomize,
@@ -35,13 +36,21 @@ where
         }
     }
 
-    fn run(&self, duration: Duration) {
+    pub fn run(&mut self, duration: Duration) {
         use std::time::Instant;
 
         let start = Instant::now();
+        info!("starting the random algorithm");
         while start.elapsed() < duration {
             let solution = self.randomize.randomize(&self.problem);
+            let fitness = self.problem.fitness(&solution);
+
+            match &self.best {
+                Some((_, best_fitness)) if fitness < *best_fitness => continue,
+                _ => self.best = Some((solution, fitness))
+            }
         }
+        info!("finished the random algorithm");
     }
 }
 

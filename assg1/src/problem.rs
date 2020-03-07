@@ -1,6 +1,9 @@
-pub trait Problem {
-    type Solution: ToOwned + Clone;
-    type Measure: std::cmp::PartialOrd;
+use std::cmp::PartialOrd;
+use std::fmt::Debug;
 
-    fn fitness(&self, solution: Self::Solution) -> Self::Measure;
+pub trait Problem {
+    type Solution: ToOwned + Clone + Debug;
+    type Measure: PartialOrd + Debug;
+
+    fn fitness(&self, solution: &Self::Solution) -> Self::Measure;
 }

@@ -12,20 +12,24 @@ pub struct TSP {
 }
 
 use crate::problem::Problem;
+use std::cmp::Reverse;
 
 impl Problem for TSP {
     type Solution = Vec<usize>;
-    type Measure = f64;
+    type Measure = Reverse<f64>;
 
-    fn fitness(&self, solution: Vec<usize>) -> f64 {
+    fn fitness(&self, solution: &Vec<usize>) -> Reverse<f64> {
         use std::f64::INFINITY;
 
-        (0..self.dimension).zip((0..self.dimension).cycle().skip(1))
+        let fitness = (0..self.dimension)
+            .zip((0..self.dimension).cycle().skip(1))
             .map(|(i, j)| solution.get(i)
                 .and_then(|a| solution.get(j)
                     .and_then(|b| self.dm.get(*a, *b))))
             .sum::<Option<f64>>()
-            .unwrap_or(INFINITY)
+            .unwrap_or(INFINITY);
+        
+        Reverse(fitness)
     }
 }
 
@@ -58,5 +62,19 @@ impl Mutate<TSP> for Swap {
         }
 
         return Cow::Borrowed(individual);
+    }
+}
+
+use crate::sf;
+
+pub struct Randomize;
+
+impl sf::Randomize<TSP> for Randomize {
+    fn randomize(&self, problem: &TSP) -> Vec<usize> {
+        use rand::seq::SliceRandom;
+
+        let mut vec: Vec<usize> = (0..problem.dimension).collect();
+        vec.shuffle(&mut rand::thread_rng());
+        return vec;
     }
 }

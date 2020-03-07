@@ -20,20 +20,17 @@ fn main() -> CliResult {
     let config = Config::from_args();
     config.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
 
-    use problem::Problem;
-
-    let problem = tsp::parser::parse_problem_instance(&config.tsp_path)?;
-    // println!("{}", problem.fitness(problem.random_solution()));
-
-    use std::time::Duration;
     use sf::SolutionFinder;
 
-    // let random = sf::Random::new(problem);
-    // random.run(Duration::from_secs(2));
-    // let best = random.get_best_solution();
+    let problem = tsp::parser::parse_problem_instance(&config.tsp_path)?;
+    let mut random = sf::Random::new(problem, tsp::Randomize);
 
-    // let greedy = sf::Greedy::new(problem);
-    // let evolutionary = sf::Evolutionary
+    use std::time::Duration;
+
+    random.run(Duration::from_secs(2));
+    let best = random.get_best_solution();
+
+    println!("best solution: {:?}", best);
 
     Ok(())
 }
