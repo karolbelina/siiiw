@@ -30,13 +30,14 @@ fn main() -> CliResult {
     // println!("{:?}", greedy.next(4));
 
     let evolutionary = ea::Evolutionary::new(
-        &problem,
-        &tsp::ops::initialize::Random::new(&problem),
-        &tsp::ops::select::Tournament::new(2),
-        &tsp::ops::mutate::Swap::new(&problem, 0.01),
+        tsp::ops::initialize::Random::new(&problem),
+        tsp::ops::select::Tournament::new(2),
+        tsp::ops::crossover::OX::new(&problem, 0.7),
+        tsp::ops::mutate::Swap::new(&problem, 0.01),
         1000,
         10
     );
+    evolutionary.run();
 
     // random.run();
 

@@ -26,6 +26,7 @@ pub fn parse_problem_instance(tsp_path: &PathBuf) -> Result<TSP, Error> {
     let mut coord_system: Option<CoordinateSystem> = None;
 
     use std::time::Instant;
+    
     let start = Instant::now();
     
     let file = read_file(&tsp_path)?;

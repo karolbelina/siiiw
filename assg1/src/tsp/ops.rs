@@ -86,6 +86,68 @@ pub mod select {
     }
 }
 
+pub mod crossover {
+    use crate::ea::{Individual, Crossover};
+    use std::borrow::Cow;
+    use super::super::TSP;
+
+    pub struct OX<'a> {
+        problem: &'a TSP,
+        probability: f64,
+    }
+
+    impl OX<'_> {
+        pub fn new<'a>(problem: &'a TSP, probability: f64) -> OX<'a> {
+            OX {
+                problem: problem,
+                probability: probability,
+            }
+        }
+    }
+
+    impl Crossover for OX<'_> {
+        type Problem = TSP;
+
+        fn crossover<'a>(&self, a: &'a Individual<TSP>, b: &'a Individual<TSP>)
+            -> Cow<'a, Individual<TSP>>
+        {
+            use rand::Rng;
+            use crate::problem::Problem;
+
+            assert_eq!(a.genotype.len(), b.genotype.len(), "mismatched genotype lengths");
+
+            if rand::thread_rng().gen_range(0.0, 1.0) < self.probability {
+                use rand::distributions::{Distribution, Uniform};
+
+                let distribution = Uniform::from(0..a.genotype.len());
+                let first = distribution.sample(&mut rand::thread_rng());
+                let second = distribution.sample(&mut rand::thread_rng());
+
+                let (lower, greater) = if first > second {
+                    (second, first)
+                } else {
+                    (first, second)
+                };
+
+                let subsequence = &a.genotype[lower..=greater];
+                let mut genotype = b.genotype.clone();
+                genotype.retain(|x| !subsequence.contains(&x));
+
+                let mut tail = genotype.split_off(lower);
+                genotype.extend_from_slice(subsequence);
+                genotype.append(&mut tail);
+
+                return Cow::Owned(Individual {
+                    fitness: self.problem.fitness(&genotype),
+                    genotype: genotype,
+                });
+            } else {
+                return Cow::Borrowed(a);
+            }
+        }
+    }
+}
+
 pub mod mutate {
     use crate::ea::{Individual, Mutate};
     use std::borrow::Cow;
@@ -108,9 +170,7 @@ pub mod mutate {
     impl Mutate for Swap<'_> {
         type Problem = TSP;
 
-        fn mutate<'a>(&self, individual: &'a Individual<Self::Problem>)
-            -> Cow<'a, Individual<Self::Problem>>
-        {
+        fn mutate<'a>(&self, individual: &'a Individual<TSP>) -> Cow<'a, Individual<TSP>> {
             use rand::Rng;
             use rand::distributions::{Distribution, Uniform};
             use crate::problem::Problem;
@@ -151,16 +211,13 @@ pub mod mutate {
     impl Mutate for Inversion<'_> {
         type Problem = TSP;
 
-        fn mutate<'a>(&self, individual: &'a Individual<Self::Problem>)
-            -> Cow<'a, Individual<Self::Problem>>
-        {
+        fn mutate<'a>(&self, individual: &'a Individual<TSP>) -> Cow<'a, Individual<TSP>> {
             use rand::Rng;
             use crate::problem::Problem;
 
             if rand::thread_rng().gen_range(0.0, 1.0) < self.probability {
                 use rand::distributions::{Distribution, Uniform};
 
-                let mut genotype = individual.genotype.clone();
                 let distribution = Uniform::from(0..individual.genotype.len());
                 let first = distribution.sample(&mut rand::thread_rng());
                 let second = distribution.sample(&mut rand::thread_rng());
@@ -171,6 +228,7 @@ pub mod mutate {
                     } else {
                         (first, second)
                     };
+                    let mut genotype = individual.genotype.clone();
                     genotype[lower..=greater].reverse();
                     return Cow::Owned(Individual {
                         fitness: self.problem.fitness(&genotype),
