@@ -37,38 +37,38 @@ pub trait Mutate {
 //     fn crossover(&self, a: &Individual<P>, b: &Individual<P>) -> Individual<P>;
 // }
 
-pub struct Evolutionary<'a, P: Problem, I/*, S, C, M*/>
+pub struct Evolutionary<'a, P: Problem, I, S, /*C, */M>
 where
     I: Initialize<Problem=P>,
-    // S: Select<P>,
+    S: Select<Problem=P>,
     // C: Crossover<P>,
-    // M: Mutate<P>
+    M: Mutate<Problem=P>
 {
     problem: &'a P,
     initialize: &'a I,
-    // select: &'a S,
+    select: &'a S,
     // crossover: &'a C,
-    // mutate: &'a M,
+    mutate: &'a M,
     pop_size: usize,
     generations: usize,
 }
 
-impl<P: Problem, I/*, S, C, M*/> Evolutionary<'_, P, I/*, S, C, M*/>
+impl<P: Problem, I, S, /*C, */M> Evolutionary<'_, P, I, S, /*C, */M>
 where
     I: Initialize<Problem=P>,
-    // S: Select<P>,
+    S: Select<Problem=P>,
     // C: Crossover<P>,
-    // M: Mutate<P>
+    M: Mutate<Problem=P>
 {
-    pub fn new<'a>(problem: &'a P, initialize: &'a I/*, select: &'a S, crossover: &'a C, mutate: &'a M*/,
-        pop_size: usize, generations: usize) -> Evolutionary<'a, P, I/*, S, C, M*/>
+    pub fn new<'a>(problem: &'a P, initialize: &'a I, select: &'a S, /*crossover: &'a C, */mutate: &'a M,
+        pop_size: usize, generations: usize) -> Evolutionary<'a, P, I, S, /*C, */M>
     {
         Evolutionary {
             problem: problem,
             initialize: initialize,
-            // select: select,
+            select: select,
             // crossover: crossover,
-            // mutate: mutate,
+            mutate: mutate,
             pop_size: pop_size,
             generations: generations,
         }

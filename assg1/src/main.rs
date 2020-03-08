@@ -29,7 +29,14 @@ fn main() -> CliResult {
     // println!("{:?}", random.next());
     // println!("{:?}", greedy.next(4));
 
-    let evolutionary = ea::Evolutionary::new(&problem, &tsp::ops::initialize::Random::new(&problem), 1000, 10);
+    let evolutionary = ea::Evolutionary::new(
+        &problem,
+        &tsp::ops::initialize::Random::new(&problem),
+        &tsp::ops::select::Tournament::new(2),
+        &tsp::ops::mutate::Swap::new(&problem, 0.01),
+        1000,
+        10
+    );
 
     // random.run();
 

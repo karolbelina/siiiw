@@ -45,6 +45,14 @@ pub mod select {
         tour_size: usize,
     }
 
+    impl Tournament {
+        pub fn new(tour_size: usize) -> Tournament {
+            Tournament {
+                tour_size: tour_size,
+            }
+        }
+    }
+
     impl Select for Tournament {
         type Problem = TSP;
 
@@ -83,12 +91,64 @@ pub mod mutate {
     use std::borrow::Cow;
     use super::super::TSP;
 
-    struct Swap<'a> {
+    pub struct Swap<'a> {
         problem: &'a TSP,
         probability: f64,
     }
 
+    impl Swap<'_> {
+        pub fn new<'a>(problem: &'a TSP, probability: f64) -> Swap<'a> {
+            Swap {
+                problem: problem,
+                probability: probability,
+            }
+        }
+    }
+
     impl Mutate for Swap<'_> {
+        type Problem = TSP;
+
+        fn mutate<'a>(&self, individual: &'a Individual<Self::Problem>)
+            -> Cow<'a, Individual<Self::Problem>>
+        {
+            use rand::Rng;
+            use rand::distributions::{Distribution, Uniform};
+            use crate::problem::Problem;
+
+            let mut genotype = individual.genotype.clone();
+            let distribution = Uniform::from(0..individual.genotype.len());
+            for gene in 0..genotype.len() {
+                if rand::thread_rng().gen_range(0.0, 1.0) < self.probability {
+                    let random_gene = distribution.sample(&mut rand::thread_rng());
+                    genotype.swap(gene, random_gene);
+                }
+            }
+            if genotype != individual.genotype {
+                return Cow::Owned(Individual {
+                    fitness: self.problem.fitness(&genotype),
+                    genotype: genotype,
+                });
+            } else {
+                return Cow::Borrowed(individual);
+            }
+        }
+    }
+
+    pub struct Inversion<'a> {
+        problem: &'a TSP,
+        probability: f64,
+    }
+
+    impl Inversion<'_> {
+        pub fn new<'a>(problem: &'a TSP, probability: f64) -> Inversion<'a> {
+            Inversion {
+                problem: problem,
+                probability: probability,
+            }
+        }
+    }
+
+    impl Mutate for Inversion<'_> {
         type Problem = TSP;
 
         fn mutate<'a>(&self, individual: &'a Individual<Self::Problem>)
@@ -102,17 +162,20 @@ pub mod mutate {
 
                 let mut genotype = individual.genotype.clone();
                 let distribution = Uniform::from(0..individual.genotype.len());
-                for gene in 0..genotype.len() {
-                    if rand::thread_rng().gen_range(0.0, 1.0) < self.probability {
-                        let random_gene = distribution.sample(&mut rand::thread_rng());
-                        genotype.swap(gene, random_gene);
-                    }
-                }
-                if genotype != individual.genotype {
+                let first = distribution.sample(&mut rand::thread_rng());
+                let second = distribution.sample(&mut rand::thread_rng());
+
+                if first != second {
+                    let (lower, greater) = if first > second {
+                        (second, first)
+                    } else {
+                        (first, second)
+                    };
+                    genotype[lower..=greater].reverse();
                     return Cow::Owned(Individual {
                         fitness: self.problem.fitness(&genotype),
                         genotype: genotype,
-                    })
+                    });
                 } else {
                     return Cow::Borrowed(individual);
                 }
