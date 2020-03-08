@@ -102,7 +102,7 @@ pub fn parse_problem_instance(tsp_path: &PathBuf) -> Result<TSP, Error> {
             info!("parsed the node coord section");
             (
                 DistanceMatrix::new(&nodes, |a: &GeographicalCoord, b: &GeographicalCoord| -> f64 {
-                    let radius: f64 = 1.0;
+                    let radius: f64 = 6371.0; // Earth's radius
                     radius * ((a.latitude - b.latitude).cos() * (a.longitude - b.longitude).cos()).acos()
                 }),
                 nodes.len()

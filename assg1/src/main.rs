@@ -1,9 +1,9 @@
 use quicli::prelude::*;
 use structopt::StructOpt;
 
-mod problem;
-mod sf;
+mod ea;
 mod tsp;
+mod problem;
 
 use std::path::PathBuf;
 
@@ -20,17 +20,22 @@ fn main() -> CliResult {
     let config = Config::from_args();
     config.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
 
-    use sf::SolutionFinder;
+    // use sf::SolutionAggregator;
+    // use problem::Problem;
 
     let problem = tsp::parser::parse_problem_instance(&config.tsp_path)?;
-    let mut random = sf::Random::new(problem, tsp::Randomize);
+    // let random = tsp::Random::new(&problem);
+    // let greedy = tsp::Greedy::new(&problem);
+    // println!("{:?}", random.next());
+    // println!("{:?}", greedy.next(4));
 
-    use std::time::Duration;
+    let evolutionary = ea::Evolutionary::new(&problem, &tsp::ops::initialize::Random::new(&problem), 1000, 10);
 
-    random.run(Duration::from_secs(2));
-    let best = random.get_best_solution();
+    // random.run();
 
-    println!("best solution: {:?}", best);
+    // let best = random.get_best_solution();
+
+    // println!("best solution: {:?} (fitness = {})", best, problem.fitness(best.unwrap()).0);
 
     Ok(())
 }

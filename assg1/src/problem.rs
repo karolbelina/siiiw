@@ -1,9 +1,6 @@
-use std::cmp::PartialOrd;
-use std::fmt::Debug;
-
 pub trait Problem {
     type Solution: ToOwned + Clone;
-    type Measure: PartialOrd;
+    type Measure: Clone;
 
     fn fitness(&self, solution: &Self::Solution) -> Self::Measure;
 }

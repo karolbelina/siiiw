@@ -29,9 +29,9 @@ impl DistanceMatrix {
         };
     }
 
-    pub fn get(&self, from: usize, to: usize) -> Option<f64> {
+    pub fn get(&self, from: usize, to: usize) -> Option<&f64> {
         if from == to {
-            Some(0.0)
+            Some(&0.0)
         } else {
             let (lower, greater) = if from > to {
                 (to, from)
@@ -40,7 +40,25 @@ impl DistanceMatrix {
             };
             self.internal.get(lower)
                 .and_then(|vector| vector.get(self.size - 1 - greater))
-                .map(|ref_distance| *ref_distance)
         }
+    }
+
+    pub fn get_adjacent(&self, from: usize) -> Vec<(usize, &f64)> {
+        let mut horizontal = self.internal.iter()
+            .take(from)
+            .enumerate()
+            .map(|(i, vertical)| vertical.get(from - 1 - i)
+                .map(|distance| (i, distance)))
+            .collect::<Option<Vec<(usize, &f64)>>>()
+            .unwrap_or(Vec::new());
+        let mut vertical = self.internal.get(from)
+            .map(|vertical| vertical.iter()
+                .enumerate()
+                .map(|(i, distance)| (self.size - 1 - i, distance))
+                .rev()
+                .collect())
+            .unwrap_or(Vec::new());
+        horizontal.append(&mut vertical);
+        return horizontal;
     }
 }
