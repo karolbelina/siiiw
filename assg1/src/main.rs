@@ -21,17 +21,21 @@ fn main() -> CliResult {
     let config = Config::from_args();
     config.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
 
-    use tsp::{parser, ops, TSP};
-    // use sf::SolutionAggregator;
-    // use problem::Problem;
+    use tsp::{parser::parse_problem_instance, ops};
 
-    let problem = parser::parse_problem_instance(&config.tsp_path)?;
-    let mut discoverer = logger::Discoverer::<TSP>::new();
-    // let random = tsp::Random::new(&problem);
-    // let greedy = tsp::Greedy::new(&problem);
-    // println!("{:?}", random.next());
-    // println!("{:?}", greedy.next(4));
+    let problem = parse_problem_instance(&config.tsp_path)?;
 
+    let mut discoverer = tsp::logs::Discoverer::new();
+    let random = tsp::naive::Random::new(&problem, 10000);
+    random.run(&mut vec![&mut discoverer]);
+    println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
+
+    let mut discoverer = tsp::logs::Discoverer::new();
+    let greedy = tsp::naive::Greedy::new(&problem);
+    greedy.run(&mut vec![&mut discoverer]);
+    println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
+
+    let mut discoverer = tsp::logs::Discoverer::new();
     let evolutionary = ea::Evolutionary::new(
         ops::initialize::Random::new(&problem),
         ops::select::Tournament::new(5),
@@ -41,14 +45,7 @@ fn main() -> CliResult {
         10
     );
     evolutionary.run(&mut vec![&mut discoverer]);
-    
     println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
-
-    // random.run();
-
-    // let best = random.get_best_solution();
-
-    // println!("best solution: {:?} (fitness = {})", best, problem.fitness(best.unwrap()).0);
 
     Ok(())
 }
