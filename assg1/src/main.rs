@@ -4,6 +4,7 @@ use structopt::StructOpt;
 mod ea;
 mod tsp;
 mod problem;
+mod logger;
 
 use std::path::PathBuf;
 
@@ -20,24 +21,28 @@ fn main() -> CliResult {
     let config = Config::from_args();
     config.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
 
+    use tsp::{parser, ops, TSP};
     // use sf::SolutionAggregator;
     // use problem::Problem;
 
-    let problem = tsp::parser::parse_problem_instance(&config.tsp_path)?;
+    let problem = parser::parse_problem_instance(&config.tsp_path)?;
+    let mut discoverer = logger::Discoverer::<TSP>::new();
     // let random = tsp::Random::new(&problem);
     // let greedy = tsp::Greedy::new(&problem);
     // println!("{:?}", random.next());
     // println!("{:?}", greedy.next(4));
 
     let evolutionary = ea::Evolutionary::new(
-        tsp::ops::initialize::Random::new(&problem),
-        tsp::ops::select::Tournament::new(2),
-        tsp::ops::crossover::OX::new(&problem, 0.7),
-        tsp::ops::mutate::Swap::new(&problem, 0.01),
+        ops::initialize::Random::new(&problem),
+        ops::select::Tournament::new(5),
+        ops::crossover::OX::new(&problem, 0.7),
+        ops::mutate::Swap::new(&problem, 0.01),
         1000,
         10
     );
-    evolutionary.run();
+    evolutionary.run(&mut vec![&mut discoverer]);
+    
+    println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
 
     // random.run();
 

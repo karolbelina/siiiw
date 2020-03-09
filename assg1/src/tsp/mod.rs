@@ -12,6 +12,14 @@ pub struct TSP {
     dm: DistanceMatrix,
 }
 
+use crate::problem::BetterThan;
+
+impl BetterThan for f64 {
+    fn better_than(&self, other: &Self) -> bool {
+        self < other
+    }
+}
+
 use crate::problem::Problem;
 
 impl Problem for TSP {

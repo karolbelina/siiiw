@@ -57,6 +57,8 @@ where
     generations: usize,
 }
 
+use crate::logger::Log;
+
 impl<P: Problem, I, S, C, M> Evolutionary<P, I, S, C, M>
 where
     I: Initialize<Problem=P>,
@@ -77,7 +79,7 @@ where
         }
     }
 
-    pub fn run(&self) {
+    pub fn run(&self, loggers: &mut Vec<&mut dyn Log<(P::Solution, P::Measure)>>) {
         use quicli::prelude::*;
         use std::time::Instant;
 
@@ -93,6 +95,13 @@ where
                 let parent2 = self.select.select(&current_generation);
                 let offspring = self.crossover.crossover(&parent1, &parent2);
                 let mutated_offspring = self.mutate.mutate(&offspring);
+                
+                for logger in loggers.iter_mut() {
+                    logger.log(&(
+                        mutated_offspring.genotype.clone(),
+                        mutated_offspring.fitness.clone()
+                    ));
+                }
                 next_generation.push(mutated_offspring.into_owned());
             }
             current_generation = next_generation;
