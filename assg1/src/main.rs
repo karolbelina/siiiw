@@ -4,7 +4,7 @@ use structopt::StructOpt;
 mod ea;
 mod tsp;
 mod problem;
-mod logger;
+mod log;
 
 use std::path::PathBuf;
 

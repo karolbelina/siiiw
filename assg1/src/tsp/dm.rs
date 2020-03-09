@@ -47,7 +47,7 @@ impl DistanceMatrix {
         let mut horizontal = self.internal.iter()
             .take(from)
             .enumerate()
-            .map(|(i, vertical)| vertical.get(from - 1 - i)
+            .map(|(i, vertical)| vertical.get(self.size - 1 - from)
                 .map(|distance| (i, distance)))
             .collect::<Option<Vec<(usize, &f64)>>>()
             .unwrap_or(Vec::new());

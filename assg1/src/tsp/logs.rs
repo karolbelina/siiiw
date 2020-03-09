@@ -1,4 +1,4 @@
-use crate::logger::Log;
+use crate::log::Log;
 
 pub struct Discoverer {
     best_solution: Option<(Vec<usize>, f64)>,

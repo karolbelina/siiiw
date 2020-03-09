@@ -57,7 +57,7 @@ where
     generations: usize,
 }
 
-use crate::logger::Log;
+use crate::log::Log;
 
 impl<P: Problem, I, S, C, M> Evolutionary<P, I, S, C, M>
 where

@@ -5,7 +5,7 @@ pub struct Random<'a> {
     count: usize,
 }
     
-use crate::logger::Log;
+use crate::log::Log;
 use crate::problem::Problem;
 
 impl Random<'_> {
