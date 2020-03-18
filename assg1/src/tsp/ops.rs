@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub mod initialize {
     use crate::ea::{Individual, Initialize};
     use super::super::TSP;
@@ -93,6 +94,7 @@ pub mod initialize {
     }
 }
 
+#[allow(dead_code)]
 pub mod select {
     use crate::ea::{Individual, Select};
     use super::super::TSP;
@@ -139,9 +141,9 @@ pub mod select {
     }
 }
 
+#[allow(dead_code)]
 pub mod crossover {
     use crate::ea::{Individual, Crossover};
-    use std::borrow::Cow;
     use super::super::TSP;
 
     pub struct OX<'a> {
@@ -201,9 +203,9 @@ pub mod crossover {
     }
 }
 
+#[allow(dead_code)]
 pub mod mutate {
     use crate::ea::{Individual, Mutate};
-    use std::borrow::Cow;
     use super::super::TSP;
 
     pub struct Swap<'a> {

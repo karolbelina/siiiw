@@ -8,6 +8,7 @@ pub struct Random<'a> {
 use crate::log::Log;
 use crate::problem::Problem;
 
+#[allow(dead_code)]
 impl Random<'_> {
     pub fn new(problem: &TSP, count: usize) -> Random {
         Random {
@@ -39,6 +40,7 @@ pub struct Greedy<'a> {
     problem: &'a TSP,
 }
 
+#[allow(dead_code)]
 impl Greedy<'_> {
     pub fn new(problem: &TSP) -> Greedy {
         Greedy {
