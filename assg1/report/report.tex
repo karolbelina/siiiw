@@ -3,6 +3,10 @@
 \usepackage[utf8]{inputenc}
 \usepackage{polski}
 \usepackage{minted}
+\usepackage{pgf}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage[tableposition=top]{caption}
 
 \renewcommand\refname{Bibliografia}
 
@@ -46,7 +50,7 @@ Podczas tworzenia modelu szczególną uwagę zwrócono na jego modularność. Za
 \begin{listing}[H]
   \begin{minted}[breaklines,linenos,frame=single]{rust}
 pub trait Problem {
-  type Solution: ToOwned + Clone;
+  type Solution: Clone;
   type Measure: Clone;
 
   fn fitness(&self, solution: &Self::Solution) -> Self::Measure;
@@ -54,11 +58,61 @@ pub trait Problem {
   \end{minted}
   \caption{Definicja cechy \texttt{Problem}.}
 \end{listing}
+Algorytm genetyczny typowany jest powyższą cechą z użyciem mechanizmu generyczności. Modularność widoczna jest również w operatorach genetycznych, które implementują wspólne cechy i są wymienialne w kotekście algorytmu genetycznego.
+\begin{listing}[H]
+  \begin{minted}[breaklines,linenos,frame=single]{rust}
+fn select<'a>(
+  &self, population: &'a Vec<Individual<Self::Problem>>
+) -> &'a Individual<Self::Problem>;
+  \end{minted}
+  \caption{Definicja metody \texttt{select} przykładowej cechy \texttt{Select}, czyli jednego z czterech operatorów genetycznych. Metoda z wektora osobników wybiera i zwraca referencję na pojedynczego osobnika.}
+\end{listing}
+
+\section{Badania i eksperymenty}
+
+Algorytm dla tych samych parametrów zostanie uruchomiony 10 razy.
+
+\subsection{Eksperyment nr 1}
+
+\begin{description}[align=left,leftmargin=2.5cm,style=multiline]
+  \item [Cel] Zbadanie wpływu prawdopodobieństwa mutacji na rezultaty działania algorytmu ewolucyjnego.
+  \item [Założenia] Wszystkie testy przeprowadzane na danych pochodzą z pliku \texttt{kroA200.tsp}. Stałe wartości wszystkich parametrów poza $P_m$ wynoszą: $P_x = 0.7$, $\text{gen} = 250$, $\text{pop\_size} = 10000$, $\text{tour\_size} = 5$. Inicjalizacja jest losowa. Dla selekcji, krzyżowania i mutacji operatorami są kolejno: \textit{turniej}, \textit{OX}, oraz \textit{swap}.
+  \item [Przebieg] Algorytm zostanie uruchomiony dla różnych wartości $P_m$, rozpoczynając od $0$, zwiększając o względnie małe wartości aż do osiągnięcia wartości $1$.
+\end{description}
+\begin{figure}[H]
+  \begin{center}
+    \input{img/01_000.pgf}
+  \end{center}
+  \caption{Przebieg algorytmu dla $P_m = 0$.}
+\end{figure}
+\begin{figure}[H]
+  \begin{center}
+    \input{img/01_001.pgf}
+  \end{center}
+  \caption{Przebieg algorytmu dla $P_m = 0.01$.}
+\end{figure}
+\begin{figure}[H]
+  \begin{center}
+    \input{img/01_005.pgf}
+  \end{center}
+  \caption{Przebieg algorytmu dla $P_m = 0.05$.}
+\end{figure}
+\begin{table}[H]
+  \centering
+  \caption{Jakaś tabela}
+  \begin{tabular}{| c | c | c | c | c |}
+    \hline
+    $P_m$ & best & worst & avg & std \\
+    \hline
+    0 & 75707 & 372449 & 79931.20 & 3131.11 \\
+    0.01 & 135494 & 378228 & 139589.90 & 6256.59 \\
+    \hline
+  \end{tabular}
+\end{table}
 
 \begin{thebibliography}{9}
   \bibitem{tsplib95}
-  Gerhard Reinelt: Dokumenacja TSPLIB 95.\\
-  Universit{\"a}t Heidelberg, Institut f{\"u}ur Angewandte Mathematik,
+  Gerhard Reinelt: Dokumenacja TSPLIB 95. Universit{\"a}t Heidelberg, Institut f{\"u}ur Angewandte Mathematik,\\
   \texttt{http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95\\/tsp95.pdf}
 \end{thebibliography}
  
