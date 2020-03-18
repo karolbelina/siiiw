@@ -16,7 +16,7 @@ impl Random<'_> {
         }
     }
 
-    pub fn run(&self, loggers: &mut Vec<&mut dyn Log<(Vec<usize>, f64)>>) {
+    pub fn run(&self, loggers: &mut Vec<&mut dyn Log<(Vec<usize>, u32)>>) {
         for _ in 0..self.count {
             let solution = self.next();
             let fitness = self.problem.fitness(&solution);
@@ -46,7 +46,7 @@ impl Greedy<'_> {
         }
     }
 
-    pub fn run(&self, loggers: &mut Vec<&mut dyn Log<(Vec<usize>, f64)>>) {
+    pub fn run(&self, loggers: &mut Vec<&mut dyn Log<(Vec<usize>, u32)>>) {
         for starting_node in 0..self.problem.dimension {
             let solution = self.next(starting_node);
             let fitness = self.problem.fitness(&solution);

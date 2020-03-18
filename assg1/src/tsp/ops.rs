@@ -58,15 +58,12 @@ pub mod select {
 
         fn select<'a>(&self, population: &'a Vec<Individual<TSP>>) -> &'a Individual<TSP> {
             use rand::seq::SliceRandom;
-            use std::cmp::Ordering;
 
             let mut tournament: Vec<&Individual<TSP>> = Vec::new();
             for _ in 0..self.tour_size {
                 tournament.push(population.choose(&mut rand::thread_rng()).unwrap());
             }
-            return tournament.iter()
-                .min_by(|a, b| a.fitness.partial_cmp(&b.fitness).unwrap_or(Ordering::Equal))
-                .unwrap();
+            return tournament.iter().min_by(|a, b| a.fitness.cmp(&b.fitness)).unwrap();
         }
     }
 
@@ -79,7 +76,7 @@ pub mod select {
             use rand::distributions::{Distribution, WeightedIndex};
             
             let distribution = WeightedIndex::new(
-                population.iter().map(|individual| 1.0 / individual.fitness)
+                population.iter().map(|individual| 1.0 / individual.fitness as f64)
             ).unwrap();
             return population.get(distribution.sample(&mut rand::thread_rng())).unwrap();
         }

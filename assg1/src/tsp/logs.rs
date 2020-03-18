@@ -1,11 +1,11 @@
 use crate::log::Log;
 
 pub struct Discoverer {
-    best_solution: Option<(Vec<usize>, f64)>,
+    best_solution: Option<(Vec<usize>, u32)>,
 }
 
-impl Log<(Vec<usize>, f64)> for Discoverer {
-    fn log(&mut self, value: &(Vec<usize>, f64)) {
+impl Log<(Vec<usize>, u32)> for Discoverer {
+    fn log(&mut self, value: &(Vec<usize>, u32)) {
         let (_, measure) = value;
         match &self.best_solution {
             Some((_, best_measure)) if measure > best_measure => (),
@@ -25,7 +25,7 @@ impl Discoverer {
         return self.best_solution.to_owned().map(|(solution, _)| solution);
     }
 
-    pub fn get_best_fitness(&self) -> Option<f64> {
+    pub fn get_best_fitness(&self) -> Option<u32> {
         return self.best_solution.to_owned().map(|(_, fitness)| fitness);
     }
 }

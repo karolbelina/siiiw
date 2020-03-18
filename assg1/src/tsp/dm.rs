@@ -1,12 +1,12 @@
 use quicli::prelude::*;
 
 pub struct DistanceMatrix {
-    internal: Vec<Vec<f64>>,
+    internal: Vec<Vec<u32>>,
     size: usize,
 }
 
 impl DistanceMatrix {
-    pub fn new<T, F: Fn(&T, &T) -> f64>(nodes: &Vec<T>, distance_fn: F) -> Self {
+    pub fn new<T, F: Fn(&T, &T) -> u32>(nodes: &Vec<T>, distance_fn: F) -> Self {
         if nodes.is_empty() {
             return DistanceMatrix {
                 internal: Vec::new(),
@@ -14,9 +14,9 @@ impl DistanceMatrix {
             };
         }
         let size = nodes.len();
-        let mut matrix: Vec<Vec<f64>> = Vec::new();
+        let mut matrix: Vec<Vec<u32>> = Vec::new();
         for x in 0..size - 1 {
-            let mut vector: Vec<f64> = Vec::new();
+            let mut vector: Vec<u32> = Vec::new();
             for y in 0..size - x - 1 {
                 vector.push(distance_fn(&nodes[x], &nodes[size - y - 1]));
             }
@@ -29,9 +29,9 @@ impl DistanceMatrix {
         };
     }
 
-    pub fn get(&self, from: usize, to: usize) -> Option<&f64> {
+    pub fn get(&self, from: usize, to: usize) -> Option<&u32> {
         if from == to {
-            Some(&0.0)
+            Some(&0)
         } else {
             let (lower, greater) = if from > to {
                 (to, from)
@@ -43,13 +43,13 @@ impl DistanceMatrix {
         }
     }
 
-    pub fn get_adjacent(&self, from: usize) -> Vec<(usize, &f64)> {
+    pub fn get_adjacent(&self, from: usize) -> Vec<(usize, &u32)> {
         let mut horizontal = self.internal.iter()
             .take(from)
             .enumerate()
             .map(|(i, vertical)| vertical.get(self.size - 1 - from)
                 .map(|distance| (i, distance)))
-            .collect::<Option<Vec<(usize, &f64)>>>()
+            .collect::<Option<Vec<(usize, &u32)>>>()
             .unwrap_or(Vec::new());
         let mut vertical = self.internal.get(from)
             .map(|vertical| vertical.iter()

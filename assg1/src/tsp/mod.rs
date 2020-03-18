@@ -16,17 +16,17 @@ use crate::problem::Problem;
 
 impl Problem for TSP {
     type Solution = Vec<usize>;
-    type Measure = f64;
+    type Measure = u32;
 
-    fn fitness(&self, solution: &Vec<usize>) -> f64 {
-        use std::f64::INFINITY;
+    fn fitness(&self, solution: &Vec<usize>) -> u32 {
+        use std::u32;
 
         (0..self.dimension)
             .zip((0..self.dimension).cycle().skip(1))
             .map(|(i, j)| solution.get(i)
                 .and_then(|a| solution.get(j)
                     .and_then(|b| self.dm.get(*a, *b))))
-            .sum::<Option<f64>>()
-            .unwrap_or(INFINITY)
+            .sum::<Option<u32>>()
+            .unwrap_or(u32::MAX)
     }
 }

@@ -61,50 +61,50 @@ pub fn parse_problem_instance(tsp_path: &PathBuf) -> Result<TSP, Error> {
     let nodes_iter = lines.take_while(|line| *line != "EOF");
     let (dm, inferred_dimension) = match coord_system {
         CoordinateSystem::Euclidean => {
-            struct EuclideanCoord {
-                x: f64,
-                y: f64,
-            }
-            let nodes: Vec<EuclideanCoord> = nodes_iter.map(|coord_line| {
+            let nodes: Vec<(f64, f64)> = nodes_iter.map(|coord_line| {
                 let values: Vec<&str> = coord_line.split_whitespace().collect();
                 values[1].parse::<f64>().and_then(|x| {
-                    values[2].parse::<f64>().map(|y| {
-                        EuclideanCoord {
-                            x: x,
-                            y: y,
-                        }
-                    })
+                    values[2].parse::<f64>().map(|y| (x, y))
                 })
-            }).collect::<Result<Vec<EuclideanCoord>, std::num::ParseFloatError>>()?;
+            }).collect::<Result<Vec<(f64, f64)>, std::num::ParseFloatError>>()?;
             info!("parsed the node coord section");
             (
-                DistanceMatrix::new(&nodes, |a: &EuclideanCoord, b: &EuclideanCoord| -> f64 {
-                    ((a.x - b.x).powi(2) + (a.y - b.y).powi(2)).sqrt()
+                DistanceMatrix::new(&nodes, |a: &(f64, f64), b: &(f64, f64)| -> u32 {
+                    let xd = a.0 - b.0;
+                    let yd = a.1 - b.1;
+                    (xd * xd + yd * yd).sqrt().round() as u32
                 }),
                 nodes.len()
             )
         },
         CoordinateSystem::Geographical => {
-            struct GeographicalCoord {
-                latitude: f64,
-                longitude: f64,
-            }
             let nodes = nodes_iter.map(|coord_line| {
                 let values: Vec<&str> = coord_line.split_whitespace().collect();
-                values[1].parse::<f64>().and_then(|longitude_deg| {
-                    values[2].parse::<f64>().map(|latitude_deg| {
-                        GeographicalCoord {
-                            latitude: latitude_deg.to_radians(),
-                            longitude: longitude_deg.to_radians(),
-                        }
-                    })
+                values[1].parse::<f64>().and_then(|longitude| {
+                    values[2].parse::<f64>().map(|latitude| (latitude, longitude))
                 })
-            }).collect::<Result<Vec<GeographicalCoord>, std::num::ParseFloatError>>()?;
+            }).collect::<Result<Vec<(f64, f64)>, std::num::ParseFloatError>>()?;
             info!("parsed the node coord section");
             (
-                DistanceMatrix::new(&nodes, |a: &GeographicalCoord, b: &GeographicalCoord| -> f64 {
-                    let radius: f64 = 6371.0; // Earth's radius
-                    radius * ((a.latitude - b.latitude).cos() * (a.longitude - b.longitude).cos()).acos()
+                DistanceMatrix::new(&nodes, |a: &(f64, f64), b: &(f64, f64)| -> u32 {
+                    fn geo(x: &(f64, f64)) -> (f64, f64) {
+                        use std::f64::consts::PI;
+                        let deg = x.0.round();
+                        let min = x.0 - deg;
+                        let latitude = PI * (deg + 5.0 * min / 3.0) / 180.0;
+                        let deg = x.1.round();
+                        let min = x.1 - deg;
+                        let longitude = PI * (deg + 5.0 * min / 3.0) / 180.0;
+                        return (latitude, longitude);
+                    }
+
+                    let a = geo(a);
+                    let b = geo(b);
+                    let radius = 6378.388; // Earth's radius
+                    let q1 = (a.1 - b.1).cos();
+                    let q2 = (a.0 - b.0).cos();
+                    let q3 = (a.0 + b.0).cos();
+                    return (radius * (0.5 * ((1.0 + q1) * q2 - (1.0 - q1) * q3)).acos() + 1.0) as u32;
                 }),
                 nodes.len()
             )
