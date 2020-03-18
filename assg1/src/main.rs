@@ -39,15 +39,15 @@ fn main() -> CliResult {
     // println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
 
     let mut discoverer = tsp::logs::Discoverer::new();
-    let mut cohorter = tsp::logs::Cohorter::new(5000, 100);
+    let mut cohorter = tsp::logs::Cohorter::new(5000, 250);
     for _ in 0..10 {
         let evolutionary = ea::Evolutionary::new(
             ops::initialize::Random::new(&problem),
             ops::select::Tournament::new(6),
             ops::crossover::OX::new(&problem, 1.0),
-            ops::mutate::Inversion::new(&problem, 0.01),
+            ops::mutate::Inversion::new(&problem, 0.03),
             5000,
-            100
+            250
         );
         evolutionary.run(&mut vec![&mut discoverer, &mut cohorter]);
         println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());

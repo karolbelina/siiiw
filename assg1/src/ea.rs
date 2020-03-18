@@ -1,5 +1,4 @@
 use crate::problem::Problem;
-use std::borrow::Cow;
 
 pub struct Individual<P: Problem> {
     pub genotype: P::Solution,
@@ -28,18 +27,17 @@ pub trait Select {
         -> &'a Individual<Self::Problem>;
 }
 
-pub trait Mutate {
-    type Problem: Problem;
-
-    fn mutate<'a>(&self, individual: &'a Individual<Self::Problem>)
-        -> Cow<'a, Individual<Self::Problem>>;
-}
-
 pub trait Crossover {
     type Problem: Problem;
 
     fn crossover<'a>(&self, a: &'a Individual<Self::Problem>, b: &'a Individual<Self::Problem>)
-        -> Cow<'a, Individual<Self::Problem>>;
+        -> Individual<Self::Problem>;
+}
+
+pub trait Mutate {
+    type Problem: Problem;
+
+    fn mutate(&self, individual: &mut Individual<Self::Problem>);
 }
 
 pub struct Evolutionary<P: Problem, I, S, C, M>
@@ -94,16 +92,16 @@ where
             while next_generation.len() < self.pop_size {
                 let parent1 = self.select.select(&current_generation);
                 let parent2 = self.select.select(&current_generation);
-                let offspring = self.crossover.crossover(&parent1, &parent2);
-                let mutated_offspring = self.mutate.mutate(&offspring);
+                let mut offspring = self.crossover.crossover(&parent1, &parent2);
+                self.mutate.mutate(&mut offspring);
                 
                 for logger in loggers.iter_mut() {
                     logger.log(&(
-                        mutated_offspring.genotype.clone(),
-                        mutated_offspring.fitness.clone()
+                        offspring.genotype.clone(),
+                        offspring.fitness.clone()
                     ));
                 }
-                next_generation.push(mutated_offspring.into_owned());
+                next_generation.push(offspring);
             }
             current_generation = next_generation;
             info!("finished generation #{}", i + 1);

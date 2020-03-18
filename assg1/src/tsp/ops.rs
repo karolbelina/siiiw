@@ -162,7 +162,7 @@ pub mod crossover {
         type Problem = TSP;
 
         fn crossover<'a>(&self, a: &'a Individual<TSP>, b: &'a Individual<TSP>)
-            -> Cow<'a, Individual<TSP>>
+            -> Individual<TSP>
         {
             use rand::Rng;
             use crate::problem::Problem;
@@ -190,12 +190,12 @@ pub mod crossover {
                 genotype.extend_from_slice(subsequence);
                 genotype.append(&mut tail);
 
-                return Cow::Owned(Individual {
+                return Individual {
                     fitness: self.problem.fitness(&genotype),
                     genotype: genotype,
-                });
+                };
             } else {
-                return Cow::Borrowed(a);
+                return a.clone();
             }
         }
     }
@@ -223,27 +223,19 @@ pub mod mutate {
     impl Mutate for Swap<'_> {
         type Problem = TSP;
 
-        fn mutate<'a>(&self, individual: &'a Individual<TSP>) -> Cow<'a, Individual<TSP>> {
+        fn mutate(&self, individual: &mut Individual<TSP>) {
             use rand::Rng;
             use rand::distributions::{Distribution, Uniform};
             use crate::problem::Problem;
 
-            let mut genotype = individual.genotype.clone();
             let distribution = Uniform::from(0..individual.genotype.len());
-            for gene in 0..genotype.len() {
+            for gene in 0..individual.genotype.len() {
                 if rand::thread_rng().gen_range(0.0, 1.0) < self.probability {
                     let random_gene = distribution.sample(&mut rand::thread_rng());
-                    genotype.swap(gene, random_gene);
+                    individual.genotype.swap(gene, random_gene);
                 }
             }
-            if genotype != individual.genotype {
-                return Cow::Owned(Individual {
-                    fitness: self.problem.fitness(&genotype),
-                    genotype: genotype,
-                });
-            } else {
-                return Cow::Borrowed(individual);
-            }
+            individual.fitness = self.problem.fitness(&individual.genotype);
         }
     }
 
@@ -264,7 +256,7 @@ pub mod mutate {
     impl Mutate for Inversion<'_> {
         type Problem = TSP;
 
-        fn mutate<'a>(&self, individual: &'a Individual<TSP>) -> Cow<'a, Individual<TSP>> {
+        fn mutate(&self, individual: &mut Individual<TSP>) {
             use rand::Rng;
             use crate::problem::Problem;
 
@@ -281,17 +273,9 @@ pub mod mutate {
                     } else {
                         (first, second)
                     };
-                    let mut genotype = individual.genotype.clone();
-                    genotype[lower..=greater].reverse();
-                    return Cow::Owned(Individual {
-                        fitness: self.problem.fitness(&genotype),
-                        genotype: genotype,
-                    });
-                } else {
-                    return Cow::Borrowed(individual);
+                    individual.genotype[lower..=greater].reverse();
+                    individual.fitness = self.problem.fitness(&individual.genotype);
                 }
-            } else {
-                return Cow::Borrowed(individual);
             }
         }
     }
