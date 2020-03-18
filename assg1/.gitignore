@@ -1,2 +1,3 @@
-/target
+target/
 report.pdf
+_minted-report/

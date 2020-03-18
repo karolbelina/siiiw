@@ -1,16 +1,65 @@
-\documentclass[12pt]{article}
+\documentclass[12pt,a4paper]{article}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{polski}
+\usepackage{minted}
 
-\title{\bf Sprawozdanie nr 1}
-\author{Karol Belina, 242499}
-\date{\today}
+\renewcommand\refname{Bibliografia}
 
 \begin{document}
 
-\maketitle
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\scshape\large Politechnika Wrocławska \par}
+  \vspace{1cm}
+  {\itshape\large Sztuczna Inteligencja i Inżynieria Wiedzy\par}
+  \vspace{1.5cm}
+  {\LARGE\bfseries Implementacja i badanie algorytmów ewolucyjnych na bazie problemu komiwojażera\par}
+  \vspace{1cm}
+  {\Large Sprawozdanie nr 1\par}
+  \vfill
+  {\large Karol Belina, 242499\par grupa śr. 11:15}
+  \vfill
+  {\large \today\par}
+\end{titlepage}
 
 \tableofcontents
+
+\section*{Streszczenie}
+
+W sprawozdaniu opisano
+
+\section{Wstęp}
+
+Problem komiwojażera (ang. Travelling salesperson problem) jest zagadnieniem optymalizacyjnym polegającym na znalezieniu mimalnego cyklu w grafie ważonym obejmującego wszystkie wierzchołki. Dane wejściowe to lista wierzchołków wraz z ich współrzędnymi. Do rozwiązania tego problemu można użyć różnych metod m.in. algorytmu zachłannego, algorytmu wspinaczkowego (ang. Hill climbing algorithm) lub algorytmu genetycznego.
+
+\section{Implementacja}
+
+\subsection{Format plików}
+
+Dane wejściowe pochodzą z biblioteki TSPLIB 95 \cite{tsplib95}. W programie zaimplementowano uproszczony parser plików TSPLIB skupiający się jedynie na Symetrycznym problemie komiwojażera w przestrzeni dwuwymiarowej. Parser jest w stanie wykryć dwa typy wag: \verb|EUC_2D| oraz \verb|GEO| i użyć odpowiedniej funkcji odległości do obliczenia macierzy odległości. Macierz odległości zwalnia program z potrzeby przechowywania w pamięci współrzędnych. Dodatkowo, wszystkie odległości liczone są tylko raz.
+
+\subsection{Model}
+
+Podczas tworzenia modelu szczególną uwagę zwrócono na jego modularność. Zauważono, że do zdefiniowania problemu wymagana jest jedynie wiedza o typie rozwiązania i miary jakości tego rozwiązania, jak również definicja funkcji przystosowania mapująca rozwiązania na miarę jakości. Wszystkie te wymagania zawarto w implementacji jako jedna wspólna cecha \texttt{Problem} (ang. trait).
+\begin{listing}[H]
+  \begin{minted}[breaklines,linenos,frame=single]{rust}
+pub trait Problem {
+  type Solution: ToOwned + Clone;
+  type Measure: Clone;
+
+  fn fitness(&self, solution: &Self::Solution) -> Self::Measure;
+}
+  \end{minted}
+  \caption{Definicja cechy \texttt{Problem}.}
+\end{listing}
+
+\begin{thebibliography}{9}
+  \bibitem{tsplib95}
+  Gerhard Reinelt: Dokumenacja TSPLIB 95.\\
+  Universit{\"a}t Heidelberg, Institut f{\"u}ur Angewandte Mathematik,
+  \texttt{http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95\\/tsp95.pdf}
+\end{thebibliography}
  
 \end{document}
