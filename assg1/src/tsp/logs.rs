@@ -1,15 +1,20 @@
 use crate::log::Log;
 
 pub struct Discoverer {
-    best_solution: Option<(Vec<usize>, u32)>,
+    currents: Option<(u32, u32)>,
+    bests: Vec<u32>,
 }
 
 impl Log<(Vec<usize>, u32)> for Discoverer {
     fn log(&mut self, value: &(Vec<usize>, u32)) {
         let (_, measure) = value;
-        match &self.best_solution {
-            Some((_, best_measure)) if measure > best_measure => (),
-            _ => self.best_solution = Some(value.to_owned())
+        match &self.currents {
+            Some((current_best, current_worst)) => {
+                let best = if measure < current_best { measure } else { current_best };
+                let worst = if measure > current_worst { measure } else { current_worst };
+                self.currents = Some((*best, *worst));
+            },
+            None => self.currents = Some((*measure, *measure))
         }
     }
 }
@@ -17,16 +22,28 @@ impl Log<(Vec<usize>, u32)> for Discoverer {
 impl Discoverer {
     pub fn new() -> Discoverer {
         Discoverer {
-            best_solution: None,
+            currents: None,
+            bests: Vec::new(),
         }
     }
 
-    pub fn get_best_solution(&self) -> Option<Vec<usize>> {
-        return self.best_solution.to_owned().map(|(solution, _)| solution);
+    pub fn carry(&mut self) {
+        let (best, _) = self.currents.unwrap();
+        self.bests.push(best);
     }
 
-    pub fn get_best_fitness(&self) -> Option<u32> {
-        return self.best_solution.to_owned().map(|(_, fitness)| fitness);
+    pub fn print(&self) {
+        let count = self.bests.len();
+        let best: u32 = *self.bests.iter().min().unwrap();
+        let worst: u32 = self.currents.unwrap().1;
+        let avg: f64 = self.bests.iter().sum::<u32>() as f64 / count as f64;
+        let variance = self.bests.iter().map(|value| {
+            let diff = avg - (*value as f64);
+            diff * diff
+        }).sum::<f64>() / count as f64;
+        let std = variance.sqrt();
+
+        println!("best: {}, worst: {}, avg: {}, std: {}", best, worst, avg, std);
     }
 }
 
