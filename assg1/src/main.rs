@@ -25,24 +25,24 @@ fn main() -> CliResult {
 
     let problem = parse_problem_instance(&config.tsp_path)?;
 
-    let mut discoverer = tsp::logs::Discoverer::new();
-    let random = tsp::naive::Random::new(&problem, 10000);
-    random.run(&mut vec![&mut discoverer]);
-    println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
+    // let mut discoverer = tsp::logs::Discoverer::new();
+    // let random = tsp::naive::Random::new(&problem, 10000);
+    // random.run(&mut vec![&mut discoverer]);
+    // println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
 
-    let mut discoverer = tsp::logs::Discoverer::new();
-    let greedy = tsp::naive::Greedy::new(&problem);
-    greedy.run(&mut vec![&mut discoverer]);
-    println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
+    // let mut discoverer = tsp::logs::Discoverer::new();
+    // let greedy = tsp::naive::Greedy::new(&problem);
+    // greedy.run(&mut vec![&mut discoverer]);
+    // println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
 
     let mut discoverer = tsp::logs::Discoverer::new();
     let evolutionary = ea::Evolutionary::new(
-        ops::initialize::Random::new(&problem),
-        ops::select::Tournament::new(5),
-        ops::crossover::OX::new(&problem, 0.7),
-        ops::mutate::Swap::new(&problem, 0.01),
-        1000,
-        10
+        ops::initialize::Greedy::new(&problem, 0.1),
+        ops::select::Tournament::new(6),
+        ops::crossover::OX::new(&problem, 1.0),
+        ops::mutate::Inversion::new(&problem, 0.05),
+        10000,
+        100
     );
     evolutionary.run(&mut vec![&mut discoverer]);
     println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());

@@ -35,6 +35,62 @@ pub mod initialize {
             return population;
         }
     }
+
+    pub struct Greedy<'a> {
+        problem: &'a TSP,
+        percentage: f64,
+    }
+
+    impl Greedy<'_> {
+        pub fn new<'a>(problem: &'a TSP, percentage: f64) -> Greedy<'a> {
+            Greedy {
+                problem: problem,
+                percentage: percentage,
+            }
+        }
+    }
+
+    impl Initialize for Greedy<'_> {
+        type Problem = TSP;
+
+        fn initialize(&self, pop_size: usize) -> Vec<Individual<TSP>> {
+            use rand::distributions::{Distribution, Uniform};
+            use rand::seq::SliceRandom;
+            use crate::problem::Problem;
+
+            let greedy_individuals = (self.percentage * pop_size as f64) as usize;
+            let mut population: Vec<Individual<TSP>> = Vec::new();
+            for i in 0..pop_size {
+                let genotype = if i < greedy_individuals {
+                    let distribution = Uniform::from(0..self.problem.dimension);
+                    let starting_node = distribution.sample(&mut rand::thread_rng());
+                    let mut genotype: Vec<usize> = vec![starting_node];
+                    let mut current_node: usize = starting_node;
+                    for _ in 0..self.problem.dimension - 1 {
+                        let nearest_node: usize = self.problem.dm.get_adjacent(current_node)
+                            .iter()
+                            .filter(|(i, _)| !genotype.contains(i))
+                            .min_by(|a, b| a.1.cmp(b.1))
+                            .unwrap().0;
+                        genotype.push(nearest_node);
+                        current_node = nearest_node;
+                    }
+                    genotype
+                } else {
+                    let mut genotype: Vec<usize> = (0..self.problem.dimension).collect();
+                    genotype.shuffle(&mut rand::thread_rng());
+                    genotype
+                };
+
+                let individual = Individual::<TSP> {
+                    fitness: self.problem.fitness(&genotype),
+                    genotype: genotype,
+                };
+                population.push(individual);
+            }
+            return population;
+        }
+    }
 }
 
 pub mod select {

@@ -84,11 +84,12 @@ where
         use std::time::Instant;
 
         let start = Instant::now();
+        info!("started the evolutionary algorithm");
 
         let mut current_generation = self.initialize.initialize(self.pop_size);
         info!("initialized the population");
         
-        for _ in 0..self.generations {
+        for i in 0..self.generations {
             let mut next_generation = Vec::new();
             while next_generation.len() < self.pop_size {
                 let parent1 = self.select.select(&current_generation);
@@ -105,6 +106,7 @@ where
                 next_generation.push(mutated_offspring.into_owned());
             }
             current_generation = next_generation;
+            info!("finished generation #{}", i + 1);
         }
         
         let duration = start.elapsed();

@@ -57,8 +57,6 @@ impl Greedy<'_> {
     }
 
     fn next(&self, starting_node: usize) -> Vec<usize> {
-        use std::cmp::Ordering;
-
         assert!(starting_node < self.problem.dimension, "invalid starting node: {}", starting_node);
 
         let mut genotype: Vec<usize> = vec![starting_node];
@@ -67,7 +65,7 @@ impl Greedy<'_> {
             let nearest_node: usize = self.problem.dm.get_adjacent(current_node)
                 .iter()
                 .filter(|(i, _)| !genotype.contains(i))
-                .min_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(Ordering::Equal))
+                .min_by(|a, b| a.1.cmp(b.1))
                 .unwrap().0;
             genotype.push(nearest_node);
             current_node = nearest_node;
