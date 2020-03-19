@@ -22,6 +22,7 @@ dependencies = [
 name = "assg1"
 version = "0.1.0"
 dependencies = [
+ "bimap",
  "quicli",
  "rand",
  "structopt",
@@ -64,6 +65,15 @@ checksum = "e17b52e737c40a7d75abca20b29a19a0eb7ba9fc72c5a72dd282a0a3c2c0dc35"
 dependencies = [
  "cc",
  "libc",
+]
+
+[[package]]
+name = "bimap"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "783204f24fd7724ea274d327619cfa6a6018047bb0561a68aadff6f56787591b"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]

@@ -201,6 +201,135 @@ pub mod crossover {
             }
         }
     }
+
+    pub struct PMX<'a> {
+        problem: &'a TSP,
+        probability: f64,
+    }
+
+    impl PMX<'_> {
+        pub fn new<'a>(problem: &'a TSP, probability: f64) -> PMX<'a> {
+            PMX {
+                problem: problem,
+                probability: probability,
+            }
+        }
+    }
+
+    impl Crossover for PMX<'_> {
+        type Problem = TSP;
+
+        fn crossover<'a>(&self, a: &'a Individual<TSP>, b: &'a Individual<TSP>)
+            -> Individual<TSP>
+        {
+            use rand::Rng;
+            use crate::problem::Problem;
+            use bimap::BiMap;
+
+            assert_eq!(a.genotype.len(), b.genotype.len(), "mismatched genotype lengths");
+
+            if rand::thread_rng().gen_range(0.0, 1.0) < self.probability {
+                use rand::distributions::{Distribution, Uniform};
+
+                let distribution = Uniform::from(0..a.genotype.len());
+                let first = distribution.sample(&mut rand::thread_rng());
+                let second = distribution.sample(&mut rand::thread_rng());
+
+                let (lower, greater) = if first > second {
+                    (second, first)
+                } else {
+                    (first, second)
+                };
+
+                let subsequence_a = &a.genotype[lower..=greater];
+                let subsequence_b = &b.genotype[lower..=greater];
+
+                fn create_map<'a>(a: &'a [usize], b: &'a [usize]) -> BiMap<&'a usize, &'a usize> {
+                    let mut map: BiMap<&usize, &usize> = BiMap::new();
+                    a.iter().zip(b.iter()).for_each(|(i, j)| {
+                        map.insert(map.get_by_right(&i).unwrap_or(&i), j);
+                    });
+                    return map;
+                }
+
+                let map = create_map(subsequence_a, subsequence_b);
+                let genotype = a.genotype.iter()
+                    .enumerate()
+                    .map(|(i, gene)| -> usize {
+                        if i < lower || i > greater {
+                            **map.get_by_right(&gene).unwrap_or(&gene)
+                        } else {
+                            b.genotype[i]
+                        }
+                    })
+                    .collect();
+
+                return Individual {
+                    fitness: self.problem.fitness(&genotype),
+                    genotype: genotype,
+                };
+            } else {
+                return a.clone();
+            }
+        }
+    }
+
+    pub struct CX<'a> {
+        problem: &'a TSP,
+        probability: f64,
+    }
+
+    impl CX<'_> {
+        pub fn new<'a>(problem: &'a TSP, probability: f64) -> CX<'a> {
+            CX {
+                problem: problem,
+                probability: probability,
+            }
+        }
+    }
+
+    impl Crossover for CX<'_> {
+        type Problem = TSP;
+
+        fn crossover<'a>(&self, a: &'a Individual<TSP>, b: &'a Individual<TSP>)
+            -> Individual<TSP>
+        {
+            use rand::Rng;
+            use crate::problem::Problem;
+
+            assert_eq!(a.genotype.len(), b.genotype.len(), "mismatched genotype lengths");
+
+            if rand::thread_rng().gen_range(0.0, 1.0) < self.probability {
+                let mut cycle = Vec::new();
+                let first = *a.genotype.first().unwrap();
+
+                let mut current = (0, first);
+                loop {
+                    cycle.push(current.1);
+                    let next_gene = b.genotype[current.0];
+                    if next_gene != first {
+                        let pos = a.genotype.iter().position(|gene| *gene == next_gene).unwrap();
+                        current = (pos, next_gene);
+                    } else {
+                        break;
+                    }
+                }
+
+                let genotype = a.genotype.iter().zip(b.genotype.iter())
+                    .map(|(i, j)| -> usize {
+                        if cycle.contains(&i) { *i } else { *j }
+                    })
+                    .collect();
+
+                return Individual {
+                    fitness: self.problem.fitness(&genotype),
+                    genotype: genotype,
+                };
+            } else {
+                return a.clone();
+            }
+        }
+    }
 }
 
 #[allow(dead_code)]
