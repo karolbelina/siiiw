@@ -133,8 +133,9 @@ pub mod select {
         fn select<'a>(&self, population: &'a Vec<Individual<TSP>>) -> &'a Individual<TSP> {
             use rand::distributions::{Distribution, WeightedIndex};
             
+            let beta = 1.0; // controls the selection pressure
             let distribution = WeightedIndex::new(
-                population.iter().map(|individual| 1.0 / individual.fitness as f64)
+                population.iter().map(|individual| (-beta * individual.fitness as f64).exp())
             ).unwrap();
             return population.get(distribution.sample(&mut rand::thread_rng())).unwrap();
         }
@@ -240,10 +241,7 @@ pub mod crossover {
                 } else {
                     (first, second)
                 };
-
-                let subsequence_a = &a.genotype[lower..=greater];
-                let subsequence_b = &b.genotype[lower..=greater];
-
+                
                 fn create_map<'a>(a: &'a [usize], b: &'a [usize]) -> BiMap<&'a usize, &'a usize> {
                     let mut map: BiMap<&usize, &usize> = BiMap::new();
                     a.iter().zip(b.iter()).for_each(|(i, j)| {
@@ -252,7 +250,7 @@ pub mod crossover {
                     return map;
                 }
 
-                let map = create_map(subsequence_a, subsequence_b);
+                let map = create_map(&a.genotype[lower..=greater], &b.genotype[lower..=greater]);
                 let genotype = a.genotype.iter()
                     .enumerate()
                     .map(|(i, gene)| -> usize {
