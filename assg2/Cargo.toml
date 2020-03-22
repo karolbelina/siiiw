@@ -1,0 +1,16 @@
+[package]
+name = "assg2"
+description = "Constraint solving problems"
+version = "0.1.0"
+authors = ["Karol Belina <karolbelina@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+structopt = "0.3.12"
+snafu = "0.6.3"
+clap-verbosity-flag = "0.3.1"
+exitfailure = "0.5.1"
+log = "0.4.8"
+env_logger = "0.7.1"
+csv = "1.1"
+streaming-iterator = "0.1.5"
