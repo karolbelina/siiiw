@@ -1,13 +1,27 @@
+pub mod solvers;
+
 use std::ops::{Deref, DerefMut};
-use std::fmt::Debug;
+
+pub trait Constraint {
+    fn is_satisfied(&self) -> bool;
+}
+
+pub trait Variable<V>: Deref<Target=Option<V>> + DerefMut {}
 
 pub trait CSP<'a> {
-    type Value: Copy + Debug + PartialEq;
-    type Variable: Deref + DerefMut + Debug + 'a;
+    type Value;
     type Values: Iterator<Item=Self::Value>;
-    type Variables: Iterator<Item=&'a mut Self::Variable>;
+    type Variable: crate::csp::Variable<Self::Value>;
+    type Constraint: Constraint;
+    type Constraints: IntoIterator<Item=Self::Constraint> + Clone;
 
-    fn values() -> Self::Values;
+    fn constraints(&'a self) -> Self::Constraints;
 
-    fn variables(&'a mut self) -> Self::Variables;
+    fn variables(&'a mut self) -> Vec<&mut Self::Variable>;
+
+    fn values(&'a self) -> Self::Values;
+}
+
+pub trait Solve<'a> {
+    fn solve(&'a self) -> bool;
 }

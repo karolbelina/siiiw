@@ -68,6 +68,48 @@ pub fn read_board(path: &PathBuf, board_id: &String) -> Result<[[Option<Number>;
     return parse_board(&board_string);
 }
 
+use super::Cell;
+
+pub fn make_rows_of_cells() -> [[Cell; 9]; 9] {
+    let mut rows: [[Cell; 9]; 9] = [[Cell::default(); 9]; 9];
+    for y in 0..9 {
+        for x in 0..9 {
+            rows[y][x].position = (x, y)
+        }
+    }
+    return rows;
+}
+
+pub fn group_board_by_rows<T>(board: &[[T; 9]; 9]) -> [[&T; 9]; 9] {
+    let mut rows: [[&T; 9]; 9] = [[&board[0][0]; 9]; 9];
+    for y in 0..9 {
+        for x in 0..9 {
+            rows[y][x] = &board[y][x]
+        }
+    }
+    return rows;
+}
+
+pub fn group_board_by_columns<T>(board: &[[T; 9]; 9]) -> [[&T; 9]; 9] {
+    let mut columns: [[&T; 9]; 9] = [[&board[0][0]; 9]; 9];
+    for y in 0..9 {
+        for x in 0..9 {
+            columns[y][x] = &board[x][y]
+        }
+    }
+    return columns;
+}
+
+pub fn group_board_by_boxes<T>(board: &[[T; 9]; 9]) -> [[&T; 9]; 9] {
+    let mut boxes: [[&T; 9]; 9] = [[&board[0][0]; 9]; 9];
+    for y in 0..9 {
+        for x in 0..9 {
+            boxes[(y / 3) * 3 + x / 3][(y % 3) * 3 + x % 3] = &board[y][x]
+        }
+    }
+    return boxes;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,5 +149,43 @@ mod tests {
         assert!(parse_board(
             ".3.79.......6.8....27..5...3...4..9....8.94......6..58....82..118.9.....7.5...6..."
         ).is_err());
+    }
+
+    #[test]
+    fn test_group_board() {
+        let mut board = [[0; 9]; 9];
+        for y in 0..9 {
+            for x in 0..9 {
+                board[y][x] = y * 9 + x
+            }
+        }
+        let columns = group_board_by_columns(&board);
+        let boxes = group_board_by_boxes(&board);
+
+        assert_eq!(
+            columns,
+            [[&0, &9,  &18, &27, &36, &45, &54, &63, &72],
+             [&1, &10, &19, &28, &37, &46, &55, &64, &73],
+             [&2, &11, &20, &29, &38, &47, &56, &65, &74],
+             [&3, &12, &21, &30, &39, &48, &57, &66, &75],
+             [&4, &13, &22, &31, &40, &49, &58, &67, &76],
+             [&5, &14, &23, &32, &41, &50, &59, &68, &77],
+             [&6, &15, &24, &33, &42, &51, &60, &69, &78],
+             [&7, &16, &25, &34, &43, &52, &61, &70, &79],
+             [&8, &17, &26, &35, &44, &53, &62, &71, &80]]
+        );
+
+        assert_eq!(
+            boxes,
+            [[&0,  &1,  &2,  &9,  &10, &11, &18, &19, &20],
+             [&3,  &4,  &5,  &12, &13, &14, &21, &22, &23],
+             [&6,  &7,  &8,  &15, &16, &17, &24, &25, &26],
+             [&27, &28, &29, &36, &37, &38, &45, &46, &47],
+             [&30, &31, &32, &39, &40, &41, &48, &49, &50],
+             [&33, &34, &35, &42, &43, &44, &51, &52, &53],
+             [&54, &55, &56, &63, &64, &65, &72, &73, &74],
+             [&57, &58, &59, &66, &67, &68, &75, &76, &77],
+             [&60, &61, &62, &69, &70, &71, &78, &79, &80]]
+        );
     }
 }
