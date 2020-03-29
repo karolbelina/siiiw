@@ -13,30 +13,11 @@ impl fmt::Debug for Number {
     }
 }
 
-use crate::csp::Variable;
+use std::hash::{Hash, Hasher};
 
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
 pub struct Cell {
-    value: Option<Number>,
-    position: (usize, usize)
-}
-    
-impl Variable<Number> for Cell {}
-
-use std::ops::{Deref, DerefMut};
-
-impl Deref for Cell {
-    type Target = Option<Number>;
-
-    fn deref(&self) -> &Option<Number> {
-        &self.value
-    }
-}
-
-impl DerefMut for Cell {
-    fn deref_mut(&mut self) -> &mut Option<Number> {
-        &mut self.value
-    }
+    position: (usize, usize),
 }
 
 impl fmt::Debug for Cell {
@@ -59,18 +40,20 @@ pub enum SudokuConstraint<'a> {
     },
 }
 
-impl Constraint for SudokuConstraint<'_> {
-    fn is_satisfied(&self) -> bool {
+use std::collections::HashMap;
+
+impl Constraint<'_, Sudoku> for SudokuConstraint<'_> {
+    fn is_satisfied(&self, env: &HashMap<Cell, Number>) -> bool {
         match self {
             Self::Unique { cell_a, cell_b } => {
-                match (cell_a.value, cell_b.value) {
+                match (env.get(cell_a), env.get(cell_b)) {
                     (Some(a), Some(b)) => a != b,
                     _ => true
                 }
             },
             Self::Fixed { cell, value } => {
-                match cell.value {
-                    Some(n) => n == *value,
+                match env.get(cell) {
+                    Some(n) => n == value,
                     None => true
                 }
             }
@@ -82,10 +65,10 @@ impl PartialEq for SudokuConstraint<'_> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Unique { cell_a, cell_b }, Self::Unique { cell_a: other_a, cell_b: other_b }) => {
-                *cell_a as *const Cell == *other_a as *const Cell && *cell_b as *const Cell == *other_b as *const Cell
+                cell_a == other_a && cell_b == other_b
             },
             (Self::Fixed { cell, .. }, Self::Fixed { cell: other, .. }) => {
-                *cell as *const Cell == *other as *const Cell
+                cell == other
             },
             _ => false
         }
@@ -93,8 +76,6 @@ impl PartialEq for SudokuConstraint<'_> {
 }
 
 impl Eq for SudokuConstraint<'_> {}
-
-use std::hash::{Hash, Hasher};
 
 impl Hash for SudokuConstraint<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -120,6 +101,49 @@ impl fmt::Debug for SudokuConstraint<'_> {
                 write!(f, "({:?} == {:?})", cell, value)
             }
         }
+    }
+}
+
+use crate::csp::Solution;
+
+pub struct SudokuSolution {
+    board: [[Number; 9]; 9],
+}
+
+impl<'a> Solution<'a, Sudoku> for SudokuSolution {
+    fn construct(_: &Sudoku, assignments: &HashMap<Cell, Number>) -> SudokuSolution {
+        let mut board: [[Number; 9]; 9] = [[Number::One; 9]; 9];
+        for y in 0..9 {
+            for x in 0..9 {
+                board[y][x] = *assignments.get(&Cell {
+                    position: (y, x),
+                }).unwrap();
+            }
+        }
+        SudokuSolution {
+            board: board,
+        }
+    }
+}
+
+impl fmt::Display for SudokuSolution {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut result = String::new();
+        for y in 0..9 {
+            for x in 0..9 {
+                result.push_str(format!(" {:?}", self.board[y][x]).as_str());
+                if x == 2 || x == 5 {
+                    result.push_str(" |");
+                }
+            }
+            if y != 8 {
+                result.push_str(" \n")
+            }
+            if y == 2 || y == 5 {
+                result.push_str("-------+-------+-------\n")
+            }
+        }
+        write!(f, "{}", result)
     }
 }
 
@@ -150,6 +174,7 @@ impl<'a> CSP<'a> for Sudoku {
     type Variable = Cell;
     type Constraint = SudokuConstraint<'a>;
     type Constraints = HashSet<SudokuConstraint<'a>>;
+    type Solution = SudokuSolution;
 
     fn constraints(&'a self) -> Self::Constraints {
         use itertools::Itertools;
@@ -179,10 +204,10 @@ impl<'a> CSP<'a> for Sudoku {
         return constraints;
     }
 
-    fn variables(&'a mut self) -> Vec<&mut Self::Variable> {
+    fn variables(&'a self) -> Vec<&Self::Variable> {
         let mut variables = Vec::new();
-        for row in self.board.iter_mut() {
-            for cell in row.iter_mut() {
+        for row in self.board.iter() {
+            for cell in row.iter() {
                 variables.push(cell);
             }
         }
@@ -193,6 +218,18 @@ impl<'a> CSP<'a> for Sudoku {
         Numbers {
             current: 0,
         }
+    }
+
+    fn initial_assignments(&'a self) -> HashMap<Self::Variable, Self::Value> {
+        let mut assignments = HashMap::new();
+        for y in 0..9 {
+            for x in 0..9 {
+                if let Some(n) = self.initial_board[y][x] {
+                    assignments.insert(self.board[y][x], n);
+                }
+            }
+        }
+        return assignments;
     }
 }
 

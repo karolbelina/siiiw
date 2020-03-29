@@ -19,35 +19,27 @@ impl fmt::Debug for Cell {
 
 type Board = Vec<Vec<Cell>>;
 
-use crate::csp::Variable;
+#[derive(Eq, PartialEq, Hash, Copy, Clone)]
+pub enum Axis {
+    Horizontal,
+    Vertical,
+}
 
+#[derive(Eq, PartialEq, Hash, Copy, Clone)]
 pub struct Line {
-    word: Option<String>,
     start_position: (usize, usize),
+    axis: Axis,
     line_length: usize,
-}
-    
-impl Variable<String> for Line {}
-
-use std::ops::{Deref, DerefMut};
-
-impl Deref for Line {
-    type Target = Option<String>;
-
-    fn deref(&self) -> &Option<String> {
-        &self.word
-    }
-}
-
-impl DerefMut for Line {
-    fn deref_mut(&mut self) -> &mut Option<String> {
-        &mut self.word
-    }
 }
 
 impl fmt::Debug for Line {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.start_position.fmt(f)
+        let (x, y) = self.start_position;
+        let end_position = match self.axis {
+            Axis::Horizontal => (x + self.line_length, y),
+            Axis::Vertical => (x, y + self.line_length)
+        };
+        write!(f, "({:?} -- {:?})", self.start_position, end_position)
     }
 }
 
@@ -66,11 +58,13 @@ pub enum JolkaConstraint<'a> {
     },
 }
 
-impl Constraint for JolkaConstraint<'_> {
-    fn is_satisfied(&self) -> bool {
+use std::collections::HashMap;
+
+impl Constraint<'_, Jolka> for JolkaConstraint<'_> {
+    fn is_satisfied(&self, env: &HashMap<Line, String>) -> bool {
         match self {
             Self::Intersection { row, column, intersection_position: (x, y) } => {
-                match (&row.word, &column.word) {
+                match (&env.get(row), &env.get(column)) {
                     (Some(row_word), Some(column_word)) => {
                         let char_from_row_index = x - row.start_position.0;
                         let char_from_column_index = y - column.start_position.1;
@@ -86,7 +80,7 @@ impl Constraint for JolkaConstraint<'_> {
                 }
             },
             Self::Length { line, line_length } => {
-                match &line.word {
+                match &env.get(line) {
                     Some(word) => word.len() == *line_length,
                     None => true
                 }
@@ -110,6 +104,51 @@ impl fmt::Debug for JolkaConstraint<'_> {
     }
 }
 
+use crate::csp::Solution;
+
+pub struct JolkaSolution {
+    board: Vec<Vec<Option<char>>>,
+}
+
+impl<'a> Solution<'a, Jolka> for JolkaSolution {
+    fn construct(problem: &Jolka, assignments: &HashMap<Line, String>) -> JolkaSolution {
+        let mut board: Vec<Vec<Option<char>>> = problem.board.iter().map(|row| {
+            row.iter().map(|_| None).collect()
+        }).collect();
+        for (line, word) in assignments {
+            for (i, ch) in word.chars().enumerate() {
+                let (start_x, start_y) = line.start_position;
+                let (x, y) = match line.axis {
+                    Axis::Horizontal => (start_x + i, start_y),
+                    Axis::Vertical => (start_x, start_y + i)
+                };
+                board[y][x] = Some(ch);
+            }
+        }
+        JolkaSolution {
+            board: board,
+        }
+    }
+}
+
+impl fmt::Display for JolkaSolution {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut result = String::new();
+        for (y, row) in self.board.iter().enumerate() {
+            for cell in row {
+                match cell {
+                    Some(ch) => result.push(*ch),
+                    None => result.push('#')
+                }
+            }
+            if y != self.board.len() - 1 {
+                result.push('\n');
+            }
+        }
+        write!(f, "{}", result)
+    }
+}
+
 use crate::csp::CSP;
 
 pub struct Jolka {
@@ -126,8 +165,8 @@ impl Jolka {
         let board = parser::read_board(&board_path)?;
         let words = parser::read_words(&words_path)?;
 
-        let rows = parser::parse_lines(&board, parser::Axis::Horizontal);
-        let columns = parser::parse_lines(&parser::transpose(&board), parser::Axis::Vertical);
+        let rows = parser::parse_lines(&board, Axis::Horizontal);
+        let columns = parser::parse_lines(&parser::transpose(&board), Axis::Vertical);
 
         Ok(Jolka {
             board: board,
@@ -144,6 +183,7 @@ impl<'a> CSP<'a> for Jolka {
     type Variable = Line;
     type Constraint = JolkaConstraint<'a>;
     type Constraints = Vec<JolkaConstraint<'a>>;
+    type Solution = JolkaSolution;
 
     fn constraints(&'a self) -> Vec<Self::Constraint> {
         let mut constraints = Vec::new();
@@ -180,10 +220,10 @@ impl<'a> CSP<'a> for Jolka {
         return constraints;
     }
 
-    fn variables(&'a mut self) -> Vec<&mut Self::Variable> {
+    fn variables(&'a self) -> Vec<&Self::Variable> {
         let mut variables = Vec::new();
-        for line in self.rows.iter_mut().chain(self.columns.iter_mut()) {
-            variables.push(&mut (*line));
+        for line in self.rows.iter().chain(self.columns.iter()) {
+            variables.push(line);
         }
         return variables;
     }
@@ -193,6 +233,10 @@ impl<'a> CSP<'a> for Jolka {
             current: 0,
             source: &self.words,
         }
+    }
+
+    fn initial_assignments(&'a self) -> HashMap<Self::Variable, Self::Value> {
+        HashMap::new()
     }
 }
 

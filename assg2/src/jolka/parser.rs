@@ -86,10 +86,7 @@ fn get_cells_occupied(line: &Vec<Cell>) -> Vec<Vec<usize>> {
     return occupied;
 }
 
-pub enum Axis {
-    Horizontal,
-    Vertical,
-}
+use super::Axis;
 
 pub fn parse_lines(lines: &Vec<Vec<Cell>>, axis: Axis) -> Vec<Line> {
     let mut rows = Vec::new();
@@ -97,11 +94,11 @@ pub fn parse_lines(lines: &Vec<Vec<Cell>>, axis: Axis) -> Vec<Line> {
         let columns_occupied = get_cells_occupied(&board_row);
         for line in columns_occupied {
             let row = Line {
-                word: None,
                 start_position: match axis {
                     Axis::Horizontal => (line[0], i),
                     Axis::Vertical => (i, line[0])
                 },
+                axis: axis,
                 line_length: line.len(),
             };
             rows.push(row);

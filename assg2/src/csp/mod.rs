@@ -1,25 +1,32 @@
 pub mod solvers;
 
-use std::ops::{Deref, DerefMut};
+use std::collections::HashMap;
+use std::hash::Hash;
+use std::fmt::{Debug, Display};
 
-pub trait Constraint {
-    fn is_satisfied(&self) -> bool;
+pub trait Constraint<'a, P: CSP<'a>> {
+    fn is_satisfied(&self, env: &HashMap<P::Variable, P::Value>) -> bool;
 }
 
-pub trait Variable<V>: Deref<Target=Option<V>> + DerefMut {}
+pub trait Solution<'a, P: CSP<'a>> {
+    fn construct(problem: &P, env: &HashMap<P::Variable, P::Value>) -> Self;
+}
 
-pub trait CSP<'a> {
-    type Value;
+pub trait CSP<'a>: Sized {
+    type Value: Clone + Debug + 'a;
     type Values: Iterator<Item=Self::Value>;
-    type Variable: crate::csp::Variable<Self::Value>;
-    type Constraint: Constraint;
-    type Constraints: IntoIterator<Item=Self::Constraint> + Clone;
+    type Variable: Eq + Hash + Copy + Clone + Debug + 'a;
+    type Constraint: Constraint<'a, Self>;
+    type Constraints: IntoIterator<Item=Self::Constraint> + Clone + Debug;
+    type Solution: Solution<'a, Self> + Display;
 
     fn constraints(&'a self) -> Self::Constraints;
 
-    fn variables(&'a mut self) -> Vec<&mut Self::Variable>;
+    fn variables(&'a self) -> Vec<&Self::Variable>;
 
     fn values(&'a self) -> Self::Values;
+
+    fn initial_assignments(&'a self) -> HashMap<Self::Variable, Self::Value>;
 }
 
 pub trait Solve<'a> {
