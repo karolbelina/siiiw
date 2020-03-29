@@ -1,15 +1,58 @@
 use super::{CSP, Solve, Solution};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+pub struct Order<T, O: Iterator<Item=usize>> {
+    source: Vec<T>,
+    order: O,
+}
+
+impl<'a, T: Clone, O: Iterator<Item=usize>> Iterator for Order<T, O> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        self.order.next().map(|index| self.source.get(index).unwrap().clone())
+    }
+}
 
 pub enum VariableSelector {
     First,
 }
 
 impl VariableSelector {
-    pub fn select_variable<'a, V>(&self, variables: &'a Vec<&V>) -> &'a V {
+    pub fn variables<'a, P: CSP<'a>, I>(&self, source: I)
+        -> Order<&'a P::Variable, std::ops::Range<usize>>
+    where
+        I: Iterator<Item=&'a P::Variable>
+    {
         match self {
             Self::First => {
-                return variables.first().unwrap();
+                let source_vec: Vec<&P::Variable> = source.collect();
+                Order {
+                    order: (0..source_vec.len()),
+                    source: source_vec,
+                }
+            }
+        }
+    }
+}
+
+pub enum ValueSelector {
+    First,
+}
+
+impl ValueSelector {
+    pub fn values<'a, P: CSP<'a>, I>(&self, source: I)
+        -> Order<P::Value, std::ops::Range<usize>>
+    where
+        I: Iterator<Item=P::Value>
+    {
+        match self {
+            Self::First => {
+                let source_vec: Vec<P::Value> = source.collect();
+                Order {
+                    order: (0..source_vec.len()),
+                    source: source_vec,
+                }
             }
         }
     }
@@ -18,48 +61,46 @@ impl VariableSelector {
 pub struct Backtracking<'a, P: CSP<'a>> {
     pub problem: &'a P,
     pub variable_selector: &'a VariableSelector,
+    pub value_selector: &'a ValueSelector,
 }
 
 impl<'a, P: CSP<'a>> Backtracking<'a, P> {
     fn backtrack(
         &'a self,
-        unassigned_variables: Vec<&P::Variable>,
+        unassigned_variables: Vec<&'a P::Variable>,
         assignments: &HashMap<P::Variable, P::Value>,
         constraints: &P::Constraints
-    ) -> bool {
-        use super::{Constraint};
+    ) -> HashSet<P::Solution> {
+        use super::Constraint;
         use log::info;
 
-        for constraint in constraints.clone().into_iter() {
-            if !constraint.is_satisfied(&assignments) {
-                return false;
+        if let Some(variable) = self.variable_selector.variables::<P, _>(unassigned_variables.iter().cloned()).next() {
+            let mut solutions = HashSet::new();
+            'values: for value in self.value_selector.values::<P, _>(self.problem.values()) {
+                let mut new_assignments = assignments.clone();
+                new_assignments.insert(*variable, value);
+                for constraint in constraints.clone().into_iter() {
+                    if !constraint.is_satisfied(&new_assignments) {
+                        continue 'values;
+                    }
+                }
+                let new_solutions = self.backtrack(
+                    unassigned_variables.iter().filter(|x| **x != variable).map(|x| *x).collect(),
+                    &new_assignments,
+                    constraints
+                );
+                solutions.extend(new_solutions);
             }
+            return solutions;
         }
-        if unassigned_variables.is_empty() {
-            info!("New solution found:\n{}", P::Solution::construct(self.problem, assignments));
-            return false;
-        }
-        let variable: &P::Variable = self.variable_selector.select_variable(&unassigned_variables);
-        for value in self.problem.values() {
-            let mut new_assignments = assignments.clone();
-            new_assignments.insert(*variable, value);
-            let result = self.backtrack(
-                unassigned_variables.iter().filter(|x| **x != variable).map(|x| *x).collect(),
-                &new_assignments,
-                constraints
-            );
-            if result == true {
-                return true;
-            }
-            new_assignments.remove(variable);
-        }
-        return false;
+        info!("New solution found");
+        return [P::Solution::construct(self.problem, assignments)].iter().cloned().collect();
     }
 }
 
-impl<'a, P: CSP<'a>> Solve<'a> for Backtracking<'a, P> {
-    fn solve(&'a self) -> bool {
-        // use log::info;
+impl<'a, P: CSP<'a>> Solve<'a, P> for Backtracking<'a, P> {
+    fn solve(&'a self) -> HashSet<P::Solution> {
+        use log::info;
 
         let assignments = self.problem.initial_assignments();
         let mut unassigned_variables = Vec::new();
@@ -69,7 +110,11 @@ impl<'a, P: CSP<'a>> Solve<'a> for Backtracking<'a, P> {
             }
         }
         let constraints = self.problem.constraints();
-        // info!("Initialized the backtracking:\n{:?}\n{:?}", unassigned_variables, assignments);
+        info!(
+            "Initialized the backtracking method with {}/{} assigned variables",
+            assignments.len(),
+            unassigned_variables.len(),
+        );
         self.backtrack(unassigned_variables, &assignments, &constraints)
     }
 }

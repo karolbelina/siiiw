@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Could not load the board: {}", source))]
+    #[snafu(display("Could not load the boards file: {}", source))]
     LoadBoard { source: csv::Error },
     #[snafu(display("No board with id {:?} found", board_id))]
     InvalidBoardId { board_id: String },

@@ -18,8 +18,12 @@ fn main() -> cli::Result {
             let backtracking = csp::solvers::Backtracking {
                 problem: &jolka,
                 variable_selector: &csp::solvers::VariableSelector::First,
+                value_selector: &csp::solvers::ValueSelector::First,
             };
-            backtracking.solve();
+            let solutions = backtracking.solve();
+            for solution in solutions {
+                println!("{}\n", solution);
+            }
         },
         cli::Problem::Sudoku { sudoku_path, sudoku_id } => {
             let sudoku = sudoku::Sudoku::load(&sudoku_path, &sudoku_id)?;
@@ -27,8 +31,12 @@ fn main() -> cli::Result {
             let backtracking = csp::solvers::Backtracking {
                 problem: &sudoku,
                 variable_selector: &csp::solvers::VariableSelector::First,
+                value_selector: &csp::solvers::ValueSelector::First,
             };
-            backtracking.solve();
+            let solutions = backtracking.solve();
+            for solution in solutions {
+                println!("{}\n", solution);
+            }
         }
     }
 

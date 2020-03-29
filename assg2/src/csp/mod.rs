@@ -1,6 +1,6 @@
 pub mod solvers;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::fmt::{Debug, Display};
 
@@ -18,7 +18,7 @@ pub trait CSP<'a>: Sized {
     type Variable: Eq + Hash + Copy + Clone + Debug + 'a;
     type Constraint: Constraint<'a, Self>;
     type Constraints: IntoIterator<Item=Self::Constraint> + Clone + Debug;
-    type Solution: Solution<'a, Self> + Display;
+    type Solution: Solution<'a, Self> + Clone + Eq + Hash + Display;
 
     fn constraints(&'a self) -> Self::Constraints;
 
@@ -29,6 +29,6 @@ pub trait CSP<'a>: Sized {
     fn initial_assignments(&'a self) -> HashMap<Self::Variable, Self::Value>;
 }
 
-pub trait Solve<'a> {
-    fn solve(&'a self) -> bool;
+pub trait Solve<'a, P: CSP<'a>> {
+    fn solve(&'a self) -> HashSet<P::Solution>;
 }

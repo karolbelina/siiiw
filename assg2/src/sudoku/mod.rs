@@ -106,6 +106,7 @@ impl fmt::Debug for SudokuConstraint<'_> {
 
 use crate::csp::Solution;
 
+#[derive(Eq, PartialEq, Hash, Clone)]
 pub struct SudokuSolution {
     board: [[Number; 9]; 9],
 }
@@ -159,7 +160,10 @@ use std::path::PathBuf;
 
 impl Sudoku {
     pub fn load(path: &PathBuf, board_id: &String) -> Result<Sudoku, parser::Error> {
+        use log::info;
+
         let initial_board = parser::read_board(&path, &board_id)?;
+        info!("Parsed the sudoku board file");
 
         Ok(Sudoku {
             board: parser::make_rows_of_cells(),

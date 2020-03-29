@@ -106,6 +106,7 @@ impl fmt::Debug for JolkaConstraint<'_> {
 
 use crate::csp::Solution;
 
+#[derive(Eq, PartialEq, Hash, Clone)]
 pub struct JolkaSolution {
     board: Vec<Vec<Option<char>>>,
 }
@@ -162,8 +163,12 @@ use std::path::PathBuf;
 
 impl Jolka {
     pub fn load(board_path: &PathBuf, words_path: &PathBuf) -> Result<Jolka, parser::Error> {
+        use log::info;
+        
         let board = parser::read_board(&board_path)?;
+        info!("Parsed the jolka board file");
         let words = parser::read_words(&words_path)?;
+        info!("Parsed the jolka words file");
 
         let rows = parser::parse_lines(&board, Axis::Horizontal);
         let columns = parser::parse_lines(&parser::transpose(&board), Axis::Vertical);
