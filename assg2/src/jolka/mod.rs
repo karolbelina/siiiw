@@ -132,7 +132,7 @@ impl<'a> Solution<'a, Jolka> for JolkaSolution {
     }
 }
 
-impl fmt::Display for JolkaSolution {
+impl fmt::Debug for JolkaSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut result = String::new();
         for (y, row) in self.board.iter().enumerate() {

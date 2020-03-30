@@ -22,7 +22,7 @@ fn main() -> cli::Result {
             };
             let solutions = backtracking.solve();
             for solution in solutions {
-                println!("{}\n", solution);
+                println!("{:?}\n", solution);
             }
         },
         cli::Problem::Sudoku { sudoku_path, sudoku_id } => {
@@ -35,7 +35,7 @@ fn main() -> cli::Result {
             };
             let solutions = backtracking.solve();
             for solution in solutions {
-                println!("{}\n", solution);
+                println!("{:?}\n", solution);
             }
         }
     }

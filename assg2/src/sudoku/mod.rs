@@ -127,7 +127,7 @@ impl<'a> Solution<'a, Sudoku> for SudokuSolution {
     }
 }
 
-impl fmt::Display for SudokuSolution {
+impl fmt::Debug for SudokuSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut result = String::new();
         for y in 0..9 {

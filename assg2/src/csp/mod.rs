@@ -2,7 +2,7 @@ pub mod solvers;
 
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
 pub trait Constraint<'a, P: CSP<'a>> {
     fn is_satisfied(&self, env: &HashMap<P::Variable, P::Value>) -> bool;
@@ -18,7 +18,7 @@ pub trait CSP<'a>: Sized {
     type Variable: Eq + Hash + Copy + Clone + Debug + 'a;
     type Constraint: Constraint<'a, Self>;
     type Constraints: IntoIterator<Item=Self::Constraint> + Clone + Debug;
-    type Solution: Solution<'a, Self> + Clone + Eq + Hash + Display;
+    type Solution: Solution<'a, Self> + Clone + Eq + Hash;
 
     fn constraints(&'a self) -> Self::Constraints;
 
