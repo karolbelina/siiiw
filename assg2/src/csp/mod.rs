@@ -6,6 +6,13 @@ use std::fmt::Debug;
 
 pub trait Constraint<'a, P: CSP<'a>> {
     fn is_satisfied(&self, env: &HashMap<P::Variable, P::Value>) -> bool;
+
+    fn prune(
+        &self,
+        domains: &mut HashMap<P::Variable, HashSet<P::Value>>,
+        variable: &P::Variable,
+        value: &P::Value
+    );
 }
 
 pub trait Solution<'a, P: CSP<'a>> {
@@ -13,22 +20,13 @@ pub trait Solution<'a, P: CSP<'a>> {
 }
 
 pub trait CSP<'a>: Sized {
-    type Value: Clone + Debug + 'a;
-    type Values: Iterator<Item=Self::Value>;
-    type Variable: Eq + Hash + Copy + Clone + Debug + 'a;
+    type Value: Eq + Hash + Clone + Debug + Ord + 'a;
+    type Variable: Eq + Hash + Clone + Debug + Ord + 'a;
     type Constraint: Constraint<'a, Self>;
     type Constraints: IntoIterator<Item=Self::Constraint> + Clone + Debug;
     type Solution: Solution<'a, Self> + Clone + Eq + Hash;
 
     fn constraints(&'a self) -> Self::Constraints;
 
-    fn variables(&'a self) -> Vec<&Self::Variable>;
-
-    fn values(&'a self) -> Self::Values;
-
-    fn initial_assignments(&'a self) -> HashMap<Self::Variable, Self::Value>;
-}
-
-pub trait Solve<'a, P: CSP<'a>> {
-    fn solve(&'a self) -> HashSet<P::Solution>;
+    fn domains(&'a self) -> HashMap<Self::Variable, HashSet<Self::Value>>;
 }

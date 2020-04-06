@@ -19,13 +19,13 @@ impl fmt::Debug for Cell {
 
 type Board = Vec<Vec<Cell>>;
 
-#[derive(Eq, PartialEq, Hash, Copy, Clone)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, Ord, PartialOrd)]
 pub enum Axis {
     Horizontal,
     Vertical,
 }
 
-#[derive(Eq, PartialEq, Hash, Copy, Clone)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, Ord, PartialOrd)]
 pub struct Line {
     start_position: (usize, usize),
     axis: Axis,
@@ -46,61 +46,68 @@ impl fmt::Debug for Line {
 use crate::csp::Constraint;
 
 #[derive(Clone)]
-pub enum JolkaConstraint<'a> {
-    Intersection {
-        row: &'a Line,
-        column: &'a Line,
-        intersection_position: (usize, usize)
-    },
-    Length {
-        line: &'a Line,
-        line_length: usize,
-    },
+pub struct Intersection<'a> {
+    row: &'a Line,
+    column: &'a Line,
+    intersection_position: (usize, usize)
 }
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-impl Constraint<'_, Jolka> for JolkaConstraint<'_> {
+impl Constraint<'_, Jolka> for Intersection<'_> {
     fn is_satisfied(&self, env: &HashMap<Line, String>) -> bool {
-        match self {
-            Self::Intersection { row, column, intersection_position: (x, y) } => {
-                match (&env.get(row), &env.get(column)) {
-                    (Some(row_word), Some(column_word)) => {
-                        let char_from_row_index = x - row.start_position.0;
-                        let char_from_column_index = y - column.start_position.1;
-                        row_word.chars().nth(char_from_row_index)
-                            .map_or(false, |char_from_row: char| -> bool {
-                                column_word.chars().nth(char_from_column_index)
-                                    .map_or(false, |char_from_column: char| -> bool {
-                                        char_from_row == char_from_column
-                                    })
+        match (&env.get(self.row), &env.get(self.column)) {
+            (Some(row_word), Some(column_word)) => {
+                let (x, y) = self.intersection_position;
+                let char_from_row_index = x - self.row.start_position.0;
+                let char_from_column_index = y - self.column.start_position.1;
+                row_word.chars().nth(char_from_row_index)
+                    .map_or(false, |char_from_row: char| -> bool {
+                        column_word.chars().nth(char_from_column_index)
+                            .map_or(false, |char_from_column: char| -> bool {
+                                char_from_row == char_from_column
                             })
-                    },
-                    _ => true
-                }
+                    })
             },
-            Self::Length { line, line_length } => {
-                match &env.get(line) {
-                    Some(word) => word.len() == *line_length,
-                    None => true
+            _ => true
+        }
+    }
+
+    fn prune(&self, domains: &mut HashMap<Line, HashSet<String>>, variable: &Line, value: &String) {
+        let (start_x, _) = self.row.start_position;
+        let (_, start_y) = self.column.start_position;
+        let (x, y) = self.intersection_position;
+        if variable == self.row {
+            let character = value.chars().nth(x - start_x).unwrap();
+            domains.get_mut(self.column).map(|domain| {
+                for word in domain.clone() {
+                    if let Some(other_character) = word.chars().nth(y - start_y) {
+                        if other_character != character {
+                            domain.remove(&word);
+                        }
+                    } 
                 }
-            }
+            });
+        } else if variable == self.column {
+            let character = value.chars().nth(y - start_y).unwrap();
+            domains.get_mut(self.row).map(|domain| {
+                for word in domain.clone() {
+                    if let Some(other_character) = word.chars().nth(x - start_x) {
+                        if other_character != character {
+                            domain.remove(&word);
+                        }
+                    } 
+                }
+            });
         }
     }
 }
 
-impl fmt::Debug for JolkaConstraint<'_> {
+impl fmt::Debug for Intersection<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Intersection { row, column, intersection_position: (x, y) } => {
-                let char_from_row_index = x - row.start_position.0;
-                let char_from_column_index = y - column.start_position.1;
-                write!(f, "({:?}[{}] == {:?}[{}])", row, char_from_row_index, column, char_from_column_index)
-            },
-            Self::Length { line, line_length } => {
-                write!(f, "(len({:?}) == {})", line, line_length)
-            }
-        }
+        let char_from_row_index = self.intersection_position.0 - self.row.start_position.0;
+        let char_from_column_index = self.intersection_position.1 - self.column.start_position.1;
+        write!(f, "({:?}[{}] == {:?}[{}])", self.row, char_from_row_index, self.column, char_from_column_index)
     }
 }
 
@@ -184,10 +191,9 @@ impl Jolka {
 
 impl<'a> CSP<'a> for Jolka {
     type Value = String;
-    type Values = Words<'a>;
     type Variable = Line;
-    type Constraint = JolkaConstraint<'a>;
-    type Constraints = Vec<JolkaConstraint<'a>>;
+    type Constraint = Intersection<'a>;
+    type Constraints = Vec<Intersection<'a>>;
     type Solution = JolkaSolution;
 
     fn constraints(&'a self) -> Vec<Self::Constraint> {
@@ -197,24 +203,16 @@ impl<'a> CSP<'a> for Jolka {
             board_row.iter().map(|_| None).collect()
         }).collect();
         for row in &self.rows {
-            constraints.push(JolkaConstraint::Length {
-                line: &row,
-                line_length: row.line_length,
-            });
             let (x, y) = row.start_position;
             for i in x..(x + row.line_length) {
                 rows_map[y][i] = Some(&row);
             }
         }
         for column in &self.columns {
-            constraints.push(JolkaConstraint::Length {
-                line: &column,
-                line_length: column.line_length,
-            });
             let (x, y) = column.start_position;
             for i in y..(y + column.line_length) {
                 if let Some(row_on_the_same_cell) = rows_map[i][x] {
-                    constraints.push(JolkaConstraint::Intersection {
+                    constraints.push(Intersection {
                         row: row_on_the_same_cell,
                         column: &column,
                         intersection_position: (x, i),
@@ -225,23 +223,18 @@ impl<'a> CSP<'a> for Jolka {
         return constraints;
     }
 
-    fn variables(&'a self) -> Vec<&Self::Variable> {
-        let mut variables = Vec::new();
+    fn domains(&self) -> HashMap<Line, HashSet<String>> {
+        let mut domains = HashMap::new();
         for line in self.rows.iter().chain(self.columns.iter()) {
-            variables.push(line);
+            let mut domain = HashSet::new();
+            for word in self.words.iter().cloned() {
+                if word.len() == line.line_length {
+                    domain.insert(word);
+                }
+            }
+            domains.insert(line.to_owned(), domain);
         }
-        return variables;
-    }
-
-    fn values(&'a self) -> Self::Values {
-        Words {
-            current: 0,
-            source: &self.words,
-        }
-    }
-
-    fn initial_assignments(&'a self) -> HashMap<Self::Variable, Self::Value> {
-        HashMap::new()
+        return domains;
     }
 }
 
