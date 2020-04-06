@@ -73,32 +73,42 @@ impl Constraint<'_, Jolka> for Intersection<'_> {
         }
     }
 
-    fn prune(&self, domains: &mut HashMap<Line, HashSet<String>>, variable: &Line, value: &String) {
+    fn prune(&self, domains: &mut HashMap<Line, HashSet<String>>, variable: &Line, value: &String) -> usize {
         let (start_x, _) = self.row.start_position;
         let (_, start_y) = self.column.start_position;
         let (x, y) = self.intersection_position;
         if variable == self.row {
+            let mut removed = 0;
             let character = value.chars().nth(x - start_x).unwrap();
             domains.get_mut(self.column).map(|domain| {
                 for word in domain.clone() {
                     if let Some(other_character) = word.chars().nth(y - start_y) {
                         if other_character != character {
-                            domain.remove(&word);
+                            if domain.remove(&word) {
+                                removed += 1;
+                            }
                         }
-                    } 
+                    }
                 }
             });
+            return removed;
         } else if variable == self.column {
+            let mut removed = 0;
             let character = value.chars().nth(y - start_y).unwrap();
             domains.get_mut(self.row).map(|domain| {
                 for word in domain.clone() {
                     if let Some(other_character) = word.chars().nth(x - start_x) {
                         if other_character != character {
-                            domain.remove(&word);
+                            if domain.remove(&word) {
+                                removed += 1;
+                            }
                         }
-                    } 
+                    }
                 }
             });
+            return removed;
+        } else {
+            return 0;
         }
     }
 }
@@ -171,7 +181,7 @@ use std::path::PathBuf;
 impl Jolka {
     pub fn load(board_path: &PathBuf, words_path: &PathBuf) -> Result<Jolka, parser::Error> {
         use log::info;
-        
+
         let board = parser::read_board(&board_path)?;
         info!("Parsed the jolka board file");
         let words = parser::read_words(&words_path)?;
@@ -198,7 +208,7 @@ impl<'a> CSP<'a> for Jolka {
 
     fn constraints(&'a self) -> Vec<Self::Constraint> {
         let mut constraints = Vec::new();
-        
+
         let mut rows_map: Vec<Vec<Option<&Line>>> = self.board.iter().map(|board_row| {
             board_row.iter().map(|_| None).collect()
         }).collect();

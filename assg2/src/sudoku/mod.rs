@@ -42,11 +42,25 @@ impl Constraint<'_, Sudoku> for Unique<'_> {
         }
     }
 
-    fn prune(&self, domains: &mut HashMap<Cell, HashSet<Number>>, variable: &Cell, value: &Number) {
+    fn prune(&self, domains: &mut HashMap<Cell, HashSet<Number>>, variable: &Cell, value: &Number) -> usize {
         if variable == self.cell_a {
-            domains.get_mut(self.cell_b).map(|domain_b| domain_b.remove(value));
+            let mut removed = 0;
+            domains.get_mut(self.cell_b).map(|domain_b| {
+                if domain_b.remove(value) {
+                    removed += 1;
+                }
+            });
+            return removed;
         } else if variable == self.cell_b {
-            domains.get_mut(self.cell_a).map(|domain_a| domain_a.remove(value));
+            let mut removed = 0;
+            domains.get_mut(self.cell_a).map(|domain_a| {
+                if domain_a.remove(value) {
+                    removed += 1;
+                };
+            });
+            return removed;
+        } else {
+            return 0;
         }
     }
 }

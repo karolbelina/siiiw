@@ -90,6 +90,7 @@ pub enum ValueSelector {
     OrderOfDefinition,
     LeastConstrainingValue,
     Random,
+    LeastOccuringValue,
 }
 
 impl ValueSelector {
@@ -97,7 +98,8 @@ impl ValueSelector {
         &self,
         variable: &P::Variable,
         domains: &HashMap<P::Variable, HashSet<P::Value>>,
-        _: &P::Constraints
+        assignments: &HashMap<P::Variable, P::Value>,
+        constraints: &P::Constraints
     ) -> Order<P::Value>
     {
         match self {
@@ -111,7 +113,22 @@ impl ValueSelector {
                 Order::new(values)
             },
             Self::LeastConstrainingValue => {
-                unimplemented!()
+                use itertools::Itertools;
+                use super::Constraint;
+
+                let values = domains.get(variable).unwrap().iter()
+                    .map(|value| -> (P::Value, usize) {
+                        let mut temp_domains = domains.clone();
+                        let mut removed = 0;
+                        for constraint in constraints.clone().into_iter() {
+                            removed += constraint.prune(&mut temp_domains, &variable, &value);
+                        }
+                        return (value.clone(), removed);
+                    })
+                    .sorted_by(|(_, a), (_, b)| Ord::cmp(&a, &b))
+                    .map(|(x, _)| x)
+                    .collect();
+                Order::new(values)
             },
             Self::Random => {
                 use rand::thread_rng;
@@ -121,6 +138,24 @@ impl ValueSelector {
                     .map(|a| a.clone())
                     .collect();
                 values.shuffle(&mut thread_rng());
+                Order::new(values)
+            },
+            Self::LeastOccuringValue => {
+                use itertools::Itertools;
+                
+                let values: Vec<P::Value> = domains.get(variable).unwrap().iter()
+                    .map(|value| -> (P::Value, usize) {
+                        let mut occurences = 0;
+                        for v in assignments.values() {
+                            if v == value {
+                                occurences += 1;
+                            }
+                        }
+                        return (value.clone(), occurences);
+                    })
+                    .sorted_by(|(_, a), (_, b)| Ord::cmp(&a, &b))
+                    .map(|(x, _)| x)
+                    .collect();
                 Order::new(values)
             }
         }
@@ -152,7 +187,7 @@ pub fn backtracking<'a, P: CSP<'a>>(
     ) -> HashSet<P::Solution> {
         if let Some(variable) = variable_selector.variables::<P>(domains.clone()).next() {
             let mut solutions = HashSet::new();
-            for value in value_selector.values::<P>(&variable, &domains, &constraints).rev() {
+            for value in value_selector.values::<P>(&variable, &domains, &assignments, &constraints).rev() {
                 statistics.visited_nodes += 1;
                 let mut new_domains = domains.clone();
                 let mut new_assignments = assignments.clone();
@@ -223,7 +258,7 @@ pub fn forward_checking<'a, P: CSP<'a>>(
     ) -> HashSet<P::Solution> {
         if let Some(variable) = variable_selector.variables::<P>(domains.clone()).next() {
             let mut solutions = HashSet::new();
-            for value in value_selector.values::<P>(&variable, &domains, &constraints).rev() {
+            for value in value_selector.values::<P>(&variable, &domains, &assignments, &constraints).rev() {
                 statistics.visited_nodes += 1;
                 let mut new_domains = domains.clone();
                 let mut new_assignments = assignments.clone();

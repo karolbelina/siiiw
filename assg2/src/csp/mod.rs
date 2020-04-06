@@ -12,7 +12,7 @@ pub trait Constraint<'a, P: CSP<'a>> {
         domains: &mut HashMap<P::Variable, HashSet<P::Value>>,
         variable: &P::Variable,
         value: &P::Value
-    );
+    ) -> usize;
 }
 
 pub trait Solution<'a, P: CSP<'a>> {

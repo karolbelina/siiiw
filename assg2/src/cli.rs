@@ -39,6 +39,7 @@ impl fmt::Debug for ValueSelector {
         match self {
             ValueSelector::OrderOfDefinition => write!(f, "order of definition"),
             ValueSelector::LeastConstrainingValue => write!(f, "least constraining value"),
+            ValueSelector::LeastOccuringValue => write!(f, "least occuring value"),
             ValueSelector::Random => write!(f, "random")
         }
     }
@@ -87,6 +88,7 @@ fn value_selection_heuristic(source: &str) -> std::result::Result<ValueSelector,
     match source {
         "def" => Ok(ValueSelector::OrderOfDefinition),
         "lcv" => Ok(ValueSelector::LeastConstrainingValue),
+        "lov" => Ok(ValueSelector::LeastOccuringValue),
         "rand" => Ok(ValueSelector::Random),
         _ => Err(Error::InvalidValueSelectorHeuristicName { name: source.to_owned() })
     }
