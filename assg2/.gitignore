@@ -1,5 +1,5 @@
 target/
-report.pdf
+report/
 _minted-report/
 poc/
 naive/

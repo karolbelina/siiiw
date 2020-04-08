@@ -125,7 +125,12 @@ impl ValueSelector {
                         }
                         return (value.clone(), removed);
                     })
-                    .sorted_by(|(_, a), (_, b)| Ord::cmp(&a, &b))
+                    .sorted_by(|(va, a), (vb, b)| {
+                        match Ord::cmp(&a, &b) {
+                            std::cmp::Ordering::Equal => Ord::cmp(&va, &vb),
+                            o => o
+                        }
+                    })
                     .map(|(x, _)| x)
                     .collect();
                 Order::new(values)
@@ -153,7 +158,12 @@ impl ValueSelector {
                         }
                         return (value.clone(), occurences);
                     })
-                    .sorted_by(|(_, a), (_, b)| Ord::cmp(&a, &b))
+                    .sorted_by(|(va, a), (vb, b)| {
+                        match Ord::cmp(&a, &b) {
+                            std::cmp::Ordering::Equal => Ord::cmp(&va, &vb),
+                            o => o
+                        }
+                    })
                     .map(|(x, _)| x)
                     .collect();
                 Order::new(values)
