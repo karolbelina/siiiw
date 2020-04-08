@@ -3,14 +3,15 @@ use crate::log::Log;
 pub struct Discoverer {
     currents: Option<(u32, u32)>,
     bests: Vec<u32>,
+    pub best_solution: Vec<usize>,
 }
 
 impl Log<(Vec<usize>, u32)> for Discoverer {
     fn log(&mut self, value: &(Vec<usize>, u32)) {
-        let (_, measure) = value;
+        let (solution, measure) = value;
         match &self.currents {
             Some((current_best, current_worst)) => {
-                let best = if measure < current_best { measure } else { current_best };
+                let best = if measure < current_best { self.best_solution = solution.clone(); measure } else { current_best };
                 let worst = if measure > current_worst { measure } else { current_worst };
                 self.currents = Some((*best, *worst));
             },
@@ -24,6 +25,7 @@ impl Discoverer {
         Discoverer {
             currents: None,
             bests: Vec::new(),
+            best_solution: Vec::new(),
         }
     }
 
@@ -43,7 +45,7 @@ impl Discoverer {
         }).sum::<f64>() / count as f64;
         let std = variance.sqrt();
 
-        println!("best: {}, worst: {}, avg: {}, std: {}", best, worst, avg, std);
+        println!("{} & {} & {} & {} \\\\", best, worst, avg, std);
     }
 }
 
@@ -132,6 +134,7 @@ impl Cohorter {
             .enumerate()
             .map(|(i, ((best, avg), worst))| {
             format!("{};{};{};{}", i, best, avg, worst)
+            // format!("{};", avg)
         })
         .collect::<Vec<String>>()
         .join("\n");

@@ -125,7 +125,17 @@ pub mod select {
         }
     }
 
-    pub struct RouletteWheel;
+    pub struct RouletteWheel {
+        beta: f64,
+    }
+
+    impl RouletteWheel {
+        pub fn new(beta: f64) -> RouletteWheel {
+            RouletteWheel {
+                beta: beta,
+            }
+        }
+    }
 
     impl Select for RouletteWheel {
         type Problem = TSP;
@@ -133,9 +143,8 @@ pub mod select {
         fn select<'a>(&self, population: &'a Vec<Individual<TSP>>) -> &'a Individual<TSP> {
             use rand::distributions::{Distribution, WeightedIndex};
             
-            let beta = 1.0; // controls the selection pressure
             let distribution = WeightedIndex::new(
-                population.iter().map(|individual| (-beta * individual.fitness as f64).exp())
+                population.iter().map(|individual| (-self.beta * individual.fitness as f64).exp())
             ).unwrap();
             return population.get(distribution.sample(&mut rand::thread_rng())).unwrap();
         }
@@ -192,75 +201,6 @@ pub mod crossover {
                 let mut tail = genotype.split_off(lower);
                 genotype.extend_from_slice(subsequence);
                 genotype.append(&mut tail);
-
-                return Individual {
-                    fitness: self.problem.fitness(&genotype),
-                    genotype: genotype,
-                };
-            } else {
-                return a.clone();
-            }
-        }
-    }
-
-    pub struct PMX<'a> {
-        problem: &'a TSP,
-        probability: f64,
-    }
-
-    impl PMX<'_> {
-        pub fn new<'a>(problem: &'a TSP, probability: f64) -> PMX<'a> {
-            PMX {
-                problem: problem,
-                probability: probability,
-            }
-        }
-    }
-
-    impl Crossover for PMX<'_> {
-        type Problem = TSP;
-
-        fn crossover<'a>(&self, a: &'a Individual<TSP>, b: &'a Individual<TSP>)
-            -> Individual<TSP>
-        {
-            use rand::Rng;
-            use crate::problem::Problem;
-            use bimap::BiMap;
-
-            assert_eq!(a.genotype.len(), b.genotype.len(), "mismatched genotype lengths");
-
-            if rand::thread_rng().gen_range(0.0, 1.0) < self.probability {
-                use rand::distributions::{Distribution, Uniform};
-
-                let distribution = Uniform::from(0..a.genotype.len());
-                let first = distribution.sample(&mut rand::thread_rng());
-                let second = distribution.sample(&mut rand::thread_rng());
-
-                let (lower, greater) = if first > second {
-                    (second, first)
-                } else {
-                    (first, second)
-                };
-                
-                fn create_map<'a>(a: &'a [usize], b: &'a [usize]) -> BiMap<&'a usize, &'a usize> {
-                    let mut map: BiMap<&usize, &usize> = BiMap::new();
-                    a.iter().zip(b.iter()).for_each(|(i, j)| {
-                        map.insert(map.get_by_right(&i).unwrap_or(&i), j);
-                    });
-                    return map;
-                }
-
-                let map = create_map(&a.genotype[lower..=greater], &b.genotype[lower..=greater]);
-                let genotype = a.genotype.iter()
-                    .enumerate()
-                    .map(|(i, gene)| -> usize {
-                        if i < lower || i > greater {
-                            **map.get_by_right(&gene).unwrap_or(&gene)
-                        } else {
-                            b.genotype[i]
-                        }
-                    })
-                    .collect();
 
                 return Individual {
                     fitness: self.problem.fitness(&genotype),

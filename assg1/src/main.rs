@@ -25,28 +25,18 @@ fn main() -> CliResult {
     config.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
 
     use tsp::{parser::parse_problem_instance, ops};
-
+    
     let problem = parse_problem_instance(&config.tsp_path)?;
 
-    // let mut discoverer = tsp::logs::Discoverer::new();
-    // let random = tsp::naive::Random::new(&problem, 10000);
-    // random.run(&mut vec![&mut discoverer]);
-    // println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
-
-    // let mut discoverer = tsp::logs::Discoverer::new();
-    // let greedy = tsp::naive::Greedy::new(&problem);
-    // greedy.run(&mut vec![&mut discoverer]);
-    // println!("{:?}, {:?}", discoverer.get_best_solution(), discoverer.get_best_fitness());
-
     let mut discoverer = tsp::logs::Discoverer::new();
-    let mut cohorter = tsp::logs::Cohorter::new(10000, 250);
+    let mut cohorter = tsp::logs::Cohorter::new(1000, 250);
     for _ in 0..10 {
         let evolutionary = ea::Evolutionary::new(
             ops::initialize::Random::new(&problem),
-            ops::select::Tournament::new(5),
-            ops::crossover::CX::new(&problem, 0.8),
-            ops::mutate::Swap::new(&problem, 0.001),
-            10000,
+            ops::select::Tournament::new(15),
+            ops::crossover::OX::new(&problem, 0.8),
+            ops::mutate::Inversion::new(&problem, 0.1),
+            1000,
             250,
         );
         evolutionary.run(&mut vec![&mut discoverer, &mut cohorter]);
