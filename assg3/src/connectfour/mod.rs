@@ -41,7 +41,7 @@ impl Board {
 }
 
 #[wasm_bindgen]
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Disc {
     Yellow = 0,
     Red = 1,
@@ -71,10 +71,11 @@ impl Default for Disc {
     }
 }
 
-#[derive(Copy, Clone)]
+#[wasm_bindgen]
+#[derive(Copy, Clone, Debug)]
 pub struct DiscDrop {
-    column: usize,
-    disc: Disc,
+    pub column: usize,
+    pub disc: Disc,
 }
 
 pub struct ValidDrops {
@@ -87,22 +88,27 @@ impl Iterator for ValidDrops {
     type Item = DiscDrop;
 
     fn next(&mut self) -> Option<DiscDrop> {
+        if self.current_column == self.board.columns.len() {
+            return None;
+        }
         while !self.board.is_valid_location(self.current_column) {
             self.current_column += 1;
             if self.current_column == self.board.columns.len() {
                 return None;
             }
         }
-        Some(DiscDrop {
+        let result = Some(DiscDrop {
             column: self.current_column,
             disc: self.disc.clone(),
-        })
+        });
+        self.current_column += 1;
+        return result;
     }
 }
 
 use crate::game::{Game, Node};
 
-struct ConnectFour;
+pub struct ConnectFour;
 
 impl Game for ConnectFour {
     type State = Board;
@@ -127,8 +133,70 @@ impl Node<ConnectFour> for Board {
         child.push(column, disc);
         return child;
     }
+    
+    fn is_terminal(&self, player: &Disc) -> bool {
+        return self.check_for_win(player);
+    }
 
     fn evaluate(&self, player: &Disc) -> i32 {
-        unimplemented!()
+        use std::i32;
+        use rand::Rng;
+
+        let opponent = &player.next_player();
+
+        if self.check_for_win(player) {
+            return i32::MAX;
+        }
+        if self.check_for_win(opponent) {
+            return i32::MIN;
+        }
+        
+        let mut rng = rand::thread_rng();
+        return rng.gen_range(0, 1000);
+    }
+}
+
+impl Board {
+    fn check_for_win(&self, player: &Disc) -> bool {
+        // check columns
+        for column in self.columns.iter() {
+            for window in column.windows(4) {
+                if window.iter().all(|disc| disc == player) {
+                    return true;
+                }
+            }
+        }
+        // check rows
+        for window in self.columns.windows(4) {
+            let height = window.iter().map(|column| column.len()).min().unwrap();
+            for y in 0..height {
+                if window.iter().all(|column| column[y] == *player) {
+                    return true;
+                }
+            }
+        }
+        // check '/' diagonals
+        for window in self.columns.windows(4) {
+            let height = window.iter().enumerate().map(|(x, column)| {
+                column.len().checked_sub(x).unwrap_or(0)
+            }).min().unwrap();
+            for y in 0..height {
+                if window.iter().enumerate().all(|(x, column)| column[y + x] == *player) {
+                    return true;
+                }
+            }
+        }
+        // check '\' diagonals
+        for window in self.columns.windows(4) {
+            let height = window.iter().enumerate().map(|(x, column)| {
+                column.len().checked_sub(4 - x - 1).unwrap_or(0)
+            }).min().unwrap();
+            for y in 0..height {
+                if window.iter().enumerate().all(|(x, column)| column[y + 4  - x - 1] == *player) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

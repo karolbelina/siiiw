@@ -1,13 +1,17 @@
 mod algorithms;
 
+use std::fmt::Debug;
+
 pub trait Node<G: Game>: Sized {
-    type Decision: Copy;
+    type Decision: Copy + Debug;
     type Decisions: Iterator<Item=Self::Decision>;
 
     fn decisions(&self, player: G::Player) -> Self::Decisions;
 
     fn make_decision(&self, decision: Self::Decision) -> Self;
-    
+
+    fn is_terminal(&self, player: &G::Player) -> bool;
+
     fn evaluate(&self, player: &G::Player) -> i32;
 }
 

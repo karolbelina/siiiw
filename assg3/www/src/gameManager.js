@@ -1,4 +1,4 @@
-import { Board, Disc } from 'assg3';
+import { Board, Disc, connectFourMinimax } from 'assg3';
 import { View } from './view';
 
 export class GameManager {
@@ -7,8 +7,7 @@ export class GameManager {
         this.view = new View(
             this.board.getColumns().length,
             this.board.getBound(),
-            this.render.bind(this),
-            this.onClick.bind(this)
+            this.render.bind(this)
         );
         this.player = Disc.Yellow;
     }
@@ -18,14 +17,32 @@ export class GameManager {
         this.player = Disc.Yellow;
     }
 
-    onClick() {
-        const column = this.view.mouseColumnIndex;
-        if(column !== undefined) {
-            if(this.board.isValidLocation(column)) {
-                this.board.push(column, this.player);
-                this.player = this.player == Disc.Yellow ? Disc.Red : Disc.Yellow;
-            }
+    nextPlayer() {
+        if(this.player == Disc.Yellow) {
+            this.player = Disc.Red;
+        } else {
+            this.player = Disc.Yellow;
         }
+    }
+
+    humanMove() {
+        return new Promise((resolve, reject) => {
+            const fn = () => {
+                const column = this.view.mouseColumnIndex;
+                if(column !== undefined) {
+                    window.removeEventListener('mousedown', fn, false);
+                    resolve(column);
+                }
+            }
+            window.addEventListener('mousedown', fn);
+        })
+    }
+
+    aiMove() {
+        return new Promise(async (resolve, reject) => {
+            const move = connectFourMinimax(this.board, this.player, 5).column;
+            resolve(move);
+        });
     }
 
     render() {
@@ -36,7 +53,24 @@ export class GameManager {
         this.render();
     }
 
-    run() {
-        setInterval(this.tick.bind(this), 1000 / 60)
+    async move(decisionFunction) {
+        do {
+            var move = await decisionFunction();
+        } while (!this.board.isValidLocation(move));
+        this.board.push(move, this.player);
+        this.view.calculateRipple(move);
+        this.nextPlayer();
+    }
+
+    async gameLoop() {
+        while(true) {
+            await this.move(this.humanMove.bind(this));
+            await this.move(this.aiMove.bind(this));
+        }
+    }
+
+    async run() {
+        setInterval(this.tick.bind(this), 1000 / 60);
+        this.gameLoop();
     }
 }

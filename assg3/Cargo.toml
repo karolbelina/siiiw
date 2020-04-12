@@ -13,11 +13,10 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4.10"
 console_error_panic_hook = { version = "0.1.1", optional = true }
-snafu = "0.6.3"
-log = "0.4.8"
-env_logger = "0.7.1"
 js-sys = "0.3.32"
+rand = { version = "0.7", features = ["wasm-bindgen"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.2"
