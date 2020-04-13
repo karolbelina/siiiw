@@ -5,44 +5,43 @@ export class GameManager {
     constructor() {
         this.restart();
         this.view = new View(
-            this.board.getColumns().length,
-            this.board.getBound(),
+            this.board.columns.length,
+            this.board.bound,
             this.render.bind(this)
         );
-        this.player = Disc.Yellow;
+        this.yellowPlayer = this.setupHuman(Disc.Yellow);
+        this.redPlayer = this.setupAi(Disc.Red);
     }
 
     restart() {
         this.board = new Board(7, 6);
-        this.player = Disc.Yellow;
     }
 
-    nextPlayer() {
-        if(this.player == Disc.Yellow) {
-            this.player = Disc.Red;
-        } else {
-            this.player = Disc.Yellow;
-        }
-    }
-
-    humanMove() {
-        return new Promise((resolve, reject) => {
-            const fn = () => {
-                const column = this.view.mouseColumnIndex;
-                if(column !== undefined) {
-                    window.removeEventListener('mousedown', fn, false);
-                    resolve(column);
+    setupHuman(color) {
+        return () => {
+            return new Promise(resolve => {
+                const fn = () => {
+                    const column = this.view.mouseColumnIndex;
+                    if(column !== undefined) {
+                        window.removeEventListener('mousedown', fn, false);
+                        this.view.dropPreview = undefined;
+                        resolve(column);
+                    }
                 }
-            }
-            window.addEventListener('mousedown', fn);
-        })
+                this.view.dropPreview = color;
+                window.addEventListener('mousedown', fn);
+            });
+        };
     }
 
-    aiMove() {
-        return new Promise(async (resolve, reject) => {
-            const move = connectFourMinimax(this.board, this.player, 5).column;
-            resolve(move);
-        });
+    setupAi(color) {
+        return () => {
+            return new Promise(async resolve => {
+                const move = await connectFourMinimax(this.board, color, 4).column;
+                await this.timeout(500);
+                resolve(move);
+            });
+        };
     }
 
     render() {
@@ -53,19 +52,28 @@ export class GameManager {
         this.render();
     }
 
-    async move(decisionFunction) {
+    async move(decisionFunction, color) {
         do {
             var move = await decisionFunction();
         } while (!this.board.isValidLocation(move));
-        this.board.push(move, this.player);
+        this.board.push(move, color);
         this.view.calculateRipple(move);
-        this.nextPlayer();
+    }
+
+    timeout(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     async gameLoop() {
         while(true) {
-            await this.move(this.humanMove.bind(this));
-            await this.move(this.aiMove.bind(this));
+            await this.move(this.yellowPlayer, Disc.Yellow);
+            if(this.board.checkForWin(Disc.Yellow)) {
+                break;
+            }
+            await this.move(this.redPlayer, Disc.Red);
+            if(this.board.checkForWin(Disc.Red)) {
+                break;
+            }
         }
     }
 

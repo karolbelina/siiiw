@@ -10,7 +10,7 @@ pub trait Node<G: Game>: Sized {
 
     fn make_decision(&self, decision: Self::Decision) -> Self;
 
-    fn is_terminal(&self, player: &G::Player) -> bool;
+    fn is_terminal(&self) -> bool;
 
     fn evaluate(&self, player: &G::Player) -> i32;
 }
@@ -21,5 +21,5 @@ pub trait NextPlayer {
 
 pub trait Game: Sized {
     type State: Node<Self>;
-    type Player: Copy + Default + NextPlayer + Eq;
+    type Player: Copy + Default + NextPlayer + Eq + Debug;
 }

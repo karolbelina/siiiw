@@ -1,11 +1,13 @@
 use wasm_bindgen::prelude::*;
 use js_sys::Array;
+use std::cell::RefCell;
 
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct Board {
     columns: Vec<Vec<Disc>>,
     bound: usize,
+    four_in_a_row: RefCell<Option<((usize, usize), (i8, i8))>>,
 }
 
 #[wasm_bindgen]
@@ -15,17 +17,27 @@ impl Board {
         Board {
             columns: (0..width).map(|_| Vec::new()).collect(),
             bound: height,
+            four_in_a_row: RefCell::new(None),
         }
     }
 
-    #[wasm_bindgen(js_name = getColumns)]
+    #[wasm_bindgen(getter = columns)]
     pub fn get_columns(&self) -> Array {
         return self.columns.clone().into_iter().map(|column| -> Array {
             column.clone().into_iter().map(JsValue::from).collect()
         }).collect();
     }
 
-    #[wasm_bindgen(js_name = getBound)]
+    #[wasm_bindgen(getter = fourInARow)]
+    pub fn get_four_in_a_row(&self) -> Option<Array> {
+        self.four_in_a_row.borrow().map(|((x, y), (dx, dy))| {
+            let position = Array::of2(&JsValue::from(x as u8), &JsValue::from(y as u8));
+            let direction = Array::of2(&dx.into(), &dy.into());
+            return Array::of2(&position, &direction);
+        })
+    }
+
+    #[wasm_bindgen(getter = bound)]
     pub fn get_bound(&self) -> usize {
         return self.bound;
     }
@@ -37,6 +49,54 @@ impl Board {
     #[wasm_bindgen(js_name = isValidLocation)]
     pub fn is_valid_location(&self, index: usize) -> bool {
         self.columns[index].len() < self.bound
+    }
+
+    #[wasm_bindgen(js_name = checkForWin)]
+    pub fn check_for_win(&self, player: Disc) -> bool {
+        // check columns
+        for (x, column) in self.columns.iter().enumerate() {
+            for (y, window) in column.windows(4).enumerate() {
+                if window.iter().all(|disc| *disc == player) {
+                    *self.four_in_a_row.borrow_mut() = Some(((x, y), (0, 1)));
+                    return true;
+                }
+            }
+        }
+        // check rows
+        for (x, window) in self.columns.windows(4).enumerate() {
+            let height = window.iter().map(|column| column.len()).min().unwrap();
+            for y in 0..height {
+                if window.iter().all(|column| column[y] == player) {
+                    *self.four_in_a_row.borrow_mut() = Some(((x, y), (1, 0)));
+                    return true;
+                }
+            }
+        }
+        // check '/' diagonals
+        for (x, window) in self.columns.windows(4).enumerate() {
+            let height = window.iter().enumerate().map(|(x, column)| {
+                column.len().checked_sub(x).unwrap_or(0)
+            }).min().unwrap();
+            for y in 0..height {
+                if window.iter().enumerate().all(|(x, column)| column[y + x] == player) {
+                    *self.four_in_a_row.borrow_mut() = Some(((x, y), (1, 1)));
+                    return true;
+                }
+            }
+        }
+        // check '\' diagonals
+        for (x, window) in self.columns.windows(4).enumerate() {
+            let height = window.iter().enumerate().map(|(x, column)| {
+                column.len().checked_sub(4 - x - 1).unwrap_or(0)
+            }).min().unwrap();
+            for y in 0..height {
+                if window.iter().enumerate().all(|(x, column)| column[y + 4 - x - 1] == player) {
+                    *self.four_in_a_row.borrow_mut() = Some(((x, y + 3), (1, -1)));
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
 
@@ -72,10 +132,18 @@ impl Default for Disc {
 }
 
 #[wasm_bindgen]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct DiscDrop {
     pub column: usize,
     pub disc: Disc,
+}
+
+use std::fmt;
+
+impl fmt::Debug for DiscDrop {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.column.fmt(f)
+    }
 }
 
 pub struct ValidDrops {
@@ -134,69 +202,170 @@ impl Node<ConnectFour> for Board {
         return child;
     }
     
-    fn is_terminal(&self, player: &Disc) -> bool {
-        return self.check_for_win(player);
+    fn is_terminal(&self) -> bool {
+        // TODO: check for a draw
+        if self.check_for_win(Disc::Yellow) {
+            return true;
+        } else if self.check_for_win(Disc::Red) {
+            return true;
+        }
+        return false;
+        // return self.check_for_win(Disc::Yellow) || self.check_for_win(Disc::Red);
     }
 
-    fn evaluate(&self, player: &Disc) -> i32 {
+    fn evaluate(&self, maximizer: &Disc) -> i32 {
         use std::i32;
-        use rand::Rng;
 
-        let opponent = &player.next_player();
+        let minimizer = &maximizer.next_player();
 
-        if self.check_for_win(player) {
-            return i32::MAX;
+        let number_of_maximizers_discs: i32 = self.columns.iter().map(|column| -> i32 {
+            column.iter().map(|disc| (disc == maximizer) as i32).sum()
+        }).sum();
+
+        if self.check_for_win(*maximizer) {
+            // win in fewest number of discs placed
+            return i32::MAX - number_of_maximizers_discs;
         }
-        if self.check_for_win(opponent) {
-            return i32::MIN;
+        if self.check_for_win(*minimizer) {
+            return i32::MIN + 100;
         }
-        
-        let mut rng = rand::thread_rng();
-        return rng.gen_range(0, 1000);
+
+        let mut score: i32 = 0;
+
+        score += self.evaluate_windows(maximizer, |grouping| -> i32 {
+            match grouping {
+                (3, 1, 0) => 10,
+                (2, 2, 0) => 6,
+                (0, 1, 3) => -10,
+                _ => 0
+            }
+        });
+
+        return score;
     }
 }
 
 impl Board {
-    fn check_for_win(&self, player: &Disc) -> bool {
-        // check columns
-        for column in self.columns.iter() {
-            for window in column.windows(4) {
-                if window.iter().all(|disc| disc == player) {
-                    return true;
+    fn evaluate_windows<F>(&self, player: &Disc, f: F) -> i32
+        where F: Fn((usize, usize, usize)) -> i32
+    {
+        let count = |window: [&Option<Disc>; 4]| -> (usize, usize, usize) {
+            let mut player_count = 0;
+            let mut empty_count = 0;
+            let mut opponent_count = 0;
+            for disc in window.iter() {
+                match disc {
+                    Some(disc) => {
+                        if disc == player {
+                            player_count += 1;
+                        } else {
+                            opponent_count += 1;
+                        }
+                    },
+                    None => empty_count += 1
                 }
             }
-        }
-        // check rows
-        for window in self.columns.windows(4) {
-            let height = window.iter().map(|column| column.len()).min().unwrap();
-            for y in 0..height {
-                if window.iter().all(|column| column[y] == *player) {
-                    return true;
-                }
+            return (player_count, empty_count, opponent_count);
+        };
+
+        let option_board: Vec<Vec<Option<Disc>>> = self.columns.iter().map(|column| -> Vec<Option<Disc>> {
+            (0..self.bound).map(|y| column.get(y).map(|disc| disc.clone())).collect()
+        }).collect();
+        let (width, height) = (self.columns.len(), self.bound);
+        let mut score = 0;
+        
+        // evaluate columns
+        for x in 0..width { // [0, 6]
+            for y in 0..=height - 4 { // [0, 2]
+                score += f(count([
+                    &option_board[x][y],
+                    &option_board[x][y + 1],
+                    &option_board[x][y + 2],
+                    &option_board[x][y + 3]
+                ]));
             }
         }
-        // check '/' diagonals
-        for window in self.columns.windows(4) {
-            let height = window.iter().enumerate().map(|(x, column)| {
-                column.len().checked_sub(x).unwrap_or(0)
-            }).min().unwrap();
-            for y in 0..height {
-                if window.iter().enumerate().all(|(x, column)| column[y + x] == *player) {
-                    return true;
-                }
+        // evaluate rows
+        for x in 0..=width - 4 { // [0, 3]
+            for y in 0..height { // [0, 5]
+                score += f(count([
+                    &option_board[x][y],
+                    &option_board[x + 1][y],
+                    &option_board[x + 2][y],
+                    &option_board[x + 3][y]
+                ]));
             }
         }
-        // check '\' diagonals
-        for window in self.columns.windows(4) {
-            let height = window.iter().enumerate().map(|(x, column)| {
-                column.len().checked_sub(4 - x - 1).unwrap_or(0)
-            }).min().unwrap();
-            for y in 0..height {
-                if window.iter().enumerate().all(|(x, column)| column[y + 4  - x - 1] == *player) {
-                    return true;
-                }
+        // evaluate '/' diagonals
+        for x in 0..=width - 4 { // [0, 3]
+            for y in 0..=height - 4 { // [0, 2]
+                score += f(count([
+                    &option_board[x][y],
+                    &option_board[x + 1][y + 1],
+                    &option_board[x + 2][y + 2],
+                    &option_board[x + 3][y + 3]
+                ]));
             }
         }
-        return false;
+        // evaluate '\' diagonals
+        for x in 0..=width - 4 { // [0, 3]
+            for y in 0..=height - 4 { // [0, 2]
+                score += f(count([
+                    &option_board[x][y + 3],
+                    &option_board[x + 1][y + 2],
+                    &option_board[x + 2][y + 1],
+                    &option_board[x + 3][y]
+                ]));
+            }
+        }
+
+        return score;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_check_for_win_in_a_row() {
+        use Disc::{Red};
+
+        let mut board = Board::new(7, 6);
+        board.push(0, Red);
+        board.push(1, Red);
+        board.push(2, Red);
+        board.push(3, Red);
+        assert!(board.check_for_win(Red));
+    }
+
+    #[test]
+    fn test_check_for_win_in_a_column() {
+        use Disc::{Red};
+
+        let mut board = Board::new(7, 6);
+        board.push(0, Red);
+        board.push(0, Red);
+        board.push(0, Red);
+        board.push(0, Red);
+        assert!(board.check_for_win(Red));
+    }
+
+    #[test]
+    fn test_check_for_win_in_a_diagonal() {
+        use Disc::{Yellow, Red};
+
+        let mut board = Board::new(7, 6);
+        board.push(3, Yellow);
+        board.push(3, Yellow);
+        board.push(3, Yellow);
+        board.push(3, Red);
+        board.push(2, Yellow);
+        board.push(2, Yellow);
+        board.push(2, Red);
+        board.push(1, Yellow);
+        board.push(1, Red);
+        board.push(0, Red);
+        assert!(board.check_for_win(Red));
     }
 }

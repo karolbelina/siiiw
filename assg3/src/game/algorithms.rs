@@ -6,8 +6,8 @@ pub fn minimax<G: Game>(node: &G::State, player: G::Player, depth: usize)
     -> Option<<G::State as Node<G>>::Decision>
 {
     fn aux<G: Game>(node: G::State, depth: usize, maximizing: G::Player, player: G::Player) -> i32 {
-        if depth == 0 || node.is_terminal(&player) {
-            return node.evaluate(&player);
+        if depth == 0 || node.is_terminal() {
+            return node.evaluate(&maximizing);
         }
         if player == maximizing {
             let mut best = i32::MIN;

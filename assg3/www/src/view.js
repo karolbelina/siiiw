@@ -63,52 +63,87 @@ export class View {
         this.ripples.push(ripple);
     }
 
-    render(board) {
-        this.context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height)
-
-        var timeOffset = performance.now() - this.startTime;
-        board.getColumns().forEach((column, x) => {
-            const pointX = (x + 0.5) * this.unitOnScreen;
-
+    getRippleOffsets(time) {
+        var rippleOffsets = [];
+        for(var x = 0; x < this.boardWidth; x++) {
             var rippleOffset = 0;
             this.ripples.forEach((ripple) => {
-                rippleOffset += ripple[x](timeOffset);
+                rippleOffset += ripple[x](time);
             });
+            rippleOffsets.push(rippleOffset);
+        }
+        return rippleOffsets;
+    }
+
+    render(board) {
+        this.context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height);
+
+        const discRadius = 0.4;
+
+        const time = performance.now() - this.startTime;
+        const rippleOffsets = this.getRippleOffsets(time);
+
+        board.columns.forEach((column, x) => {
+            const pointX = (x + 0.5) * this.unitOnScreen;
 
             this.context.beginPath();
-            this.context.moveTo(pointX, 0.5 * this.unitOnScreen + rippleOffset);
-            this.context.lineTo(pointX, (this.boardHeight - 0.5) * this.unitOnScreen + rippleOffset);
+            this.context.moveTo(pointX, 0.5 * this.unitOnScreen + rippleOffsets[x]);
+            this.context.lineTo(pointX, (this.boardHeight - 0.5) * this.unitOnScreen + rippleOffsets[x]);
             this.context.strokeStyle = "#ffffff";
             this.context.stroke();
 
             column.forEach((disc, y) => {
-                this.context.beginPath()
+                this.context.beginPath();
                 this.context.arc(
                     (x + 0.5) * this.unitOnScreen,
-                    (this.boardHeight - y - 0.5) * this.unitOnScreen + rippleOffset,
-                    this.unitOnScreen / 2.5,
+                    (this.boardHeight - y - 0.5) * this.unitOnScreen + rippleOffsets[x],
+                    discRadius * this.unitOnScreen,
                     0, 2 * Math.PI
-                )
-                this.context.fillStyle = disc == 0 ? '#ebdb34' : '#e74c3c'
-                this.context.fill()
+                );
+                this.context.fillStyle = disc == 0 ? '#ebdb34' : '#e74c3c';
+                this.context.fill();
             });
         });
 
-        if(this.mouseColumnIndex !== undefined) {
-            this.context.beginPath()
+        if(this.dropPreview && this.mouseColumnIndex !== undefined) {
+            this.context.beginPath();
             this.context.arc(
                 (this.mouseColumnIndex + 0.5) * this.unitOnScreen,
-                (this.boardHeight - (board.getColumns()[this.mouseColumnIndex].length) - 0.5) * this.unitOnScreen,
+                (this.boardHeight - (board.columns[this.mouseColumnIndex].length) - 0.5) * this.unitOnScreen,
                 this.unitOnScreen / 2.5,
                 0, 2 * Math.PI
-            )
-            this.context.strokeStyle = '#e74c3c';
+            );
+            this.context.strokeStyle = this.dropPreview == 0 ? '#ebdb34' : '#e74c3c';
             this.context.lineWidth = 2;
             const circumference = Math.PI * this.unitOnScreen / 2.5;
             this.context.setLineDash([circumference / 8, circumference / 8]);
-            this.context.lineDashOffset = (performance.now() - this.startTime) * 0.01;
+            this.context.lineDashOffset = time * 0.01;
             this.context.stroke()
             this.context.setLineDash([]);
+            this.context.lineWidth = 1;
+        }
+
+        if(board.fourInARow) {
+            const [position, direction] = board.fourInARow;
+            this.context.beginPath();
+            var x = position[0];
+            var y = position[1];
+            this.context.moveTo(
+                (x + 0.5) * this.unitOnScreen,
+                (this.boardHeight - 1 - y + 0.5) * this.unitOnScreen + rippleOffsets[x]
+            );
+            for(var i = 1; i < 4; i++) {
+                x += direction[0];
+                y += direction[1];
+                this.context.lineTo(
+                    (x + 0.5) * this.unitOnScreen,
+                    (this.boardHeight - 1 - y + 0.5) * this.unitOnScreen + rippleOffsets[x]
+                );
+            }
+            this.context.lineWidth = 2 * discRadius * this.unitOnScreen;
+            this.context.lineCap = 'round';
+            this.context.strokeStyle = board.columns[x][y] == 0 ? '#ebdb34' : '#e74c3c';
+            this.context.stroke();
             this.context.lineWidth = 1;
         }
     }
