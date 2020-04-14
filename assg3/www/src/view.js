@@ -105,7 +105,7 @@ export class View {
             });
         });
 
-        if(this.dropPreview && this.mouseColumnIndex !== undefined) {
+        if(this.dropPreview !== undefined && this.mouseColumnIndex !== undefined) {
             this.context.beginPath();
             this.context.arc(
                 (this.mouseColumnIndex + 0.5) * this.unitOnScreen,

@@ -51,6 +51,11 @@ impl Board {
         self.columns[index].len() < self.bound
     }
 
+    #[wasm_bindgen(js_name = checkForDraw)]
+    pub fn check_for_draw(&self) -> bool {
+        self.columns.iter().all(|column| column.len() == self.bound)
+    }
+
     #[wasm_bindgen(js_name = checkForWin)]
     pub fn check_for_win(&self, player: Disc) -> bool {
         // check columns
@@ -114,10 +119,10 @@ impl From<Disc> for JsValue {
     }
 }
 
-use crate::game::NextPlayer;
+use crate::game::Opponent;
 
-impl NextPlayer for Disc {
-    fn next_player(&self) -> Disc {
+impl Opponent for Disc {
+    fn opponent(&self) -> Disc {
         match self {
             Disc::Yellow => Disc::Red,
             Disc::Red => Disc::Yellow
@@ -203,59 +208,48 @@ impl Node<ConnectFour> for Board {
     }
     
     fn is_terminal(&self) -> bool {
-        // TODO: check for a draw
-        if self.check_for_win(Disc::Yellow) {
-            return true;
-        } else if self.check_for_win(Disc::Red) {
-            return true;
-        }
-        return false;
-        // return self.check_for_win(Disc::Yellow) || self.check_for_win(Disc::Red);
+        self.check_for_win(Disc::Yellow) || self.check_for_win(Disc::Red) || self.check_for_draw()
     }
 
-    fn evaluate(&self, maximizer: &Disc) -> i32 {
+    fn evaluate(&self, maximizer: Disc) -> i32 {
         use std::i32;
 
-        let minimizer = &maximizer.next_player();
+        let number_of_discs: i32 = self.columns.iter().map(|column| column.len() as i32).sum();
 
-        let number_of_maximizers_discs: i32 = self.columns.iter().map(|column| -> i32 {
-            column.iter().map(|disc| (disc == maximizer) as i32).sum()
-        }).sum();
-
-        if self.check_for_win(*maximizer) {
+        if self.check_for_win(maximizer) {
             // win in fewest number of discs placed
-            return i32::MAX - number_of_maximizers_discs;
-        }
-        if self.check_for_win(*minimizer) {
-            return i32::MIN + 100;
+            return i32::MAX - number_of_discs;
         }
 
-        let mut score: i32 = 0;
+        if self.check_for_win(maximizer.opponent()) {
+            // lose in greatest number of discs placed (drag out the game)
+            return i32::MIN + 100 + number_of_discs;
+        }
 
-        score += self.evaluate_windows(maximizer, |grouping| -> i32 {
+        return self.evaluate_windows(maximizer, |grouping| -> i32 {
             match grouping {
                 (3, 1, 0) => 10,
                 (2, 2, 0) => 6,
-                (0, 1, 3) => -10,
-                _ => 0
+                (0, 1, 3) => -15,
+                _         => 0
             }
         });
-
-        return score;
     }
 }
 
 impl Board {
-    fn evaluate_windows<F>(&self, player: &Disc, f: F) -> i32
+    fn evaluate_windows<F>(&self, player: Disc, f: F) -> i32
         where F: Fn((usize, usize, usize)) -> i32
     {
-        let count = |window: [&Option<Disc>; 4]| -> (usize, usize, usize) {
+        let count = |position: (usize, usize), direction: (isize, isize)| -> (usize, usize, usize) {
             let mut player_count = 0;
             let mut empty_count = 0;
             let mut opponent_count = 0;
-            for disc in window.iter() {
-                match disc {
-                    Some(disc) => {
+            for i in 0..4 {
+                let x = (position.0 as isize + i * direction.0) as usize;
+                let y = (position.1 as isize + i * direction.1) as usize;
+                match self.columns[x].get(y) {
+                    Some(&disc) => {
                         if disc == player {
                             player_count += 1;
                         } else {
@@ -268,54 +262,26 @@ impl Board {
             return (player_count, empty_count, opponent_count);
         };
 
-        let option_board: Vec<Vec<Option<Disc>>> = self.columns.iter().map(|column| -> Vec<Option<Disc>> {
-            (0..self.bound).map(|y| column.get(y).map(|disc| disc.clone())).collect()
-        }).collect();
         let (width, height) = (self.columns.len(), self.bound);
         let mut score = 0;
         
         // evaluate columns
         for x in 0..width { // [0, 6]
             for y in 0..=height - 4 { // [0, 2]
-                score += f(count([
-                    &option_board[x][y],
-                    &option_board[x][y + 1],
-                    &option_board[x][y + 2],
-                    &option_board[x][y + 3]
-                ]));
+                score += f(count((x, y), (0, 1)));
             }
         }
         // evaluate rows
         for x in 0..=width - 4 { // [0, 3]
             for y in 0..height { // [0, 5]
-                score += f(count([
-                    &option_board[x][y],
-                    &option_board[x + 1][y],
-                    &option_board[x + 2][y],
-                    &option_board[x + 3][y]
-                ]));
+                score += f(count((x, y), (1, 0)));
             }
         }
-        // evaluate '/' diagonals
+        // evaluate diagonals
         for x in 0..=width - 4 { // [0, 3]
             for y in 0..=height - 4 { // [0, 2]
-                score += f(count([
-                    &option_board[x][y],
-                    &option_board[x + 1][y + 1],
-                    &option_board[x + 2][y + 2],
-                    &option_board[x + 3][y + 3]
-                ]));
-            }
-        }
-        // evaluate '\' diagonals
-        for x in 0..=width - 4 { // [0, 3]
-            for y in 0..=height - 4 { // [0, 2]
-                score += f(count([
-                    &option_board[x][y + 3],
-                    &option_board[x + 1][y + 2],
-                    &option_board[x + 2][y + 1],
-                    &option_board[x + 3][y]
-                ]));
+                score += f(count((x, y), (1, 1)));
+                score += f(count((x, y + 3), (1, -1)));
             }
         }
 

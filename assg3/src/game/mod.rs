@@ -12,14 +12,14 @@ pub trait Node<G: Game>: Sized {
 
     fn is_terminal(&self) -> bool;
 
-    fn evaluate(&self, player: &G::Player) -> i32;
+    fn evaluate(&self, player: G::Player) -> i32;
 }
 
-pub trait NextPlayer {
-    fn next_player(&self) -> Self;
+pub trait Opponent {
+    fn opponent(&self) -> Self;
 }
 
 pub trait Game: Sized {
     type State: Node<Self>;
-    type Player: Copy + Default + NextPlayer + Eq + Debug;
+    type Player: Copy + Default + Opponent + Eq + Debug;
 }

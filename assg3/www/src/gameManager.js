@@ -10,7 +10,7 @@ export class GameManager {
             this.render.bind(this)
         );
         this.yellowPlayer = this.setupHuman(Disc.Yellow);
-        this.redPlayer = this.setupAi(Disc.Red);
+        this.redPlayer = this.setupHuman(Disc.Red);
     }
 
     restart() {
@@ -37,7 +37,7 @@ export class GameManager {
     setupAi(color) {
         return () => {
             return new Promise(async resolve => {
-                const move = await connectFourMinimax(this.board, color, 4).column;
+                const move = connectFourMinimax(this.board, color, 4).column;
                 await this.timeout(500);
                 resolve(move);
             });
@@ -68,10 +68,20 @@ export class GameManager {
         while(true) {
             await this.move(this.yellowPlayer, Disc.Yellow);
             if(this.board.checkForWin(Disc.Yellow)) {
+                console.log("Yellow wins")
+                break;
+            }
+            if(this.board.checkForDraw()) {
+                console.log("Draw")
                 break;
             }
             await this.move(this.redPlayer, Disc.Red);
             if(this.board.checkForWin(Disc.Red)) {
+                console.log("Red wins")
+                break;
+            }
+            if(this.board.checkForDraw()) {
+                console.log("Draw")
                 break;
             }
         }
