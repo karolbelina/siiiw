@@ -1,4 +1,4 @@
-import { Board, Disc, connectFourMinimax } from 'assg3';
+import { Board, Disc, minimax, rowCounter } from 'assg3';
 import { View } from './view';
 
 export class GameManager {
@@ -10,7 +10,7 @@ export class GameManager {
             this.render.bind(this)
         );
         this.yellowPlayer = this.setupHuman(Disc.Yellow);
-        this.redPlayer = this.setupHuman(Disc.Red);
+        this.redPlayer = this.setupAi(minimax(Disc.Red, 5, rowCounter(0, 6, 15, 1000)));
     }
 
     restart() {
@@ -34,10 +34,10 @@ export class GameManager {
         };
     }
 
-    setupAi(color) {
+    setupAi(algorithm) {
         return () => {
             return new Promise(async resolve => {
-                const move = connectFourMinimax(this.board, color, 4).column;
+                const move = algorithm(this.board).column;
                 await this.timeout(500);
                 resolve(move);
             });

@@ -1,3 +1,5 @@
+pub mod eval;
+
 use wasm_bindgen::prelude::*;
 use js_sys::Array;
 use std::cell::RefCell;
@@ -186,6 +188,10 @@ pub struct ConnectFour;
 impl Game for ConnectFour {
     type State = Board;
     type Player = Disc;
+
+    fn maximizing_player() -> Disc {
+        Disc::Yellow
+    }
 }
 
 impl Node<ConnectFour> for Board {
@@ -209,83 +215,6 @@ impl Node<ConnectFour> for Board {
     
     fn is_terminal(&self) -> bool {
         self.check_for_win(Disc::Yellow) || self.check_for_win(Disc::Red) || self.check_for_draw()
-    }
-
-    fn evaluate(&self, maximizer: Disc) -> i32 {
-        use std::i32;
-
-        let number_of_discs: i32 = self.columns.iter().map(|column| column.len() as i32).sum();
-
-        if self.check_for_win(maximizer) {
-            // win in fewest number of discs placed
-            return i32::MAX - number_of_discs;
-        }
-
-        if self.check_for_win(maximizer.opponent()) {
-            // lose in greatest number of discs placed (drag out the game)
-            return i32::MIN + 100 + number_of_discs;
-        }
-
-        return self.evaluate_windows(maximizer, |grouping| -> i32 {
-            match grouping {
-                (3, 1, 0) => 10,
-                (2, 2, 0) => 6,
-                (0, 1, 3) => -15,
-                _         => 0
-            }
-        });
-    }
-}
-
-impl Board {
-    fn evaluate_windows<F>(&self, player: Disc, f: F) -> i32
-        where F: Fn((usize, usize, usize)) -> i32
-    {
-        let count = |position: (usize, usize), direction: (isize, isize)| -> (usize, usize, usize) {
-            let mut player_count = 0;
-            let mut empty_count = 0;
-            let mut opponent_count = 0;
-            for i in 0..4 {
-                let x = (position.0 as isize + i * direction.0) as usize;
-                let y = (position.1 as isize + i * direction.1) as usize;
-                match self.columns[x].get(y) {
-                    Some(&disc) => {
-                        if disc == player {
-                            player_count += 1;
-                        } else {
-                            opponent_count += 1;
-                        }
-                    },
-                    None => empty_count += 1
-                }
-            }
-            return (player_count, empty_count, opponent_count);
-        };
-
-        let (width, height) = (self.columns.len(), self.bound);
-        let mut score = 0;
-        
-        // evaluate columns
-        for x in 0..width { // [0, 6]
-            for y in 0..=height - 4 { // [0, 2]
-                score += f(count((x, y), (0, 1)));
-            }
-        }
-        // evaluate rows
-        for x in 0..=width - 4 { // [0, 3]
-            for y in 0..height { // [0, 5]
-                score += f(count((x, y), (1, 0)));
-            }
-        }
-        // evaluate diagonals
-        for x in 0..=width - 4 { // [0, 3]
-            for y in 0..=height - 4 { // [0, 2]
-                score += f(count((x, y), (1, 1)));
-                score += f(count((x, y + 3), (1, -1)));
-            }
-        }
-
-        return score;
     }
 }
 

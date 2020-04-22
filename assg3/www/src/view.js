@@ -1,5 +1,5 @@
 export class View {
-    constructor(boardWidth, boardHeight, onViewChange = () => {}, onClick = () => {}) {
+    constructor(boardWidth, boardHeight, onViewChange = () => {}) {
         this.boardWidth = boardWidth;
         this.boardHeight = boardHeight;
         this.container = document.getElementById('container');
@@ -16,10 +16,6 @@ export class View {
             }
             this.setUp();
             this.onViewChange();
-        });
-
-        window.addEventListener('mousedown', () => {
-            onClick();
         });
 
         window.addEventListener('mousemove', (event) => {
