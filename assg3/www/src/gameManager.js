@@ -7,7 +7,15 @@ export class GameManager {
         this.view = new View(
             this.board.columns.length,
             this.board.bound,
-            this.render.bind(this)
+            this.render.bind(this),
+            (yellowPlayer, redPlayer) => {
+                console.log("Clicked play");
+                this.yellowPlayer = yellowPlayer;
+                this.redPlayer = redPlayer;
+            },
+            () => {
+                console.log("Clicked stop");
+            },
         );
         this.yellowPlayer = this.setupHuman(Disc.Yellow);
         this.redPlayer = this.setupAi(minimax(Disc.Red, 5, rowCounter(0, 6, 15, 1000)));
@@ -49,6 +57,7 @@ export class GameManager {
     }
 
     tick() {
+        this.view.animate();
         this.render();
     }
 
@@ -89,6 +98,6 @@ export class GameManager {
 
     async run() {
         setInterval(this.tick.bind(this), 1000 / 60);
-        this.gameLoop();
+        // this.gameLoop();
     }
 }
