@@ -1,3 +1,4 @@
+import { Disc, minimaxLineCounter, alphaBetaPruningLineCounter } from 'assg3';
 import { Button, Window } from './ui';
 
 const MARGIN = 1;
@@ -67,12 +68,16 @@ export class View {
                     this.settingsVisible = false;
                     this.yellowPlayerWindow.visible = false;
                     this.redPlayerWindow.visible = false;
-                    this.onPlay();
+                    this.onPlay(
+                        this.extractPlayer(this.yellowPlayerWindow, Disc.Yellow),
+                        this.extractPlayer(this.redPlayerWindow, Disc.Red)
+                    );
                 } else {
                     this.playing = false;
                     this.onStop();
                 }
-            } else if(this.settingsButton.clicked) {
+            }
+            if(this.settingsButton.clicked) {
                 this.settingsButton.clicked = false;
                 if(!this.settingsVisible) {
                     this.settingsVisible = true;
@@ -81,7 +86,8 @@ export class View {
                     this.yellowPlayerWindow.visible = false;
                     this.redPlayerWindow.visible = false;
                 }
-            } else if(this.yellowPlayerSettingButton.clicked) {
+            }
+            if(this.yellowPlayerSettingButton.clicked) {
                 this.yellowPlayerSettingButton.clicked = false;
                 if(!this.yellowPlayerWindow.visible) {
                     this.yellowPlayerWindow.visible = true;
@@ -89,7 +95,8 @@ export class View {
                 } else {
                     this.yellowPlayerWindow.visible = false;
                 }
-            } else if(this.redPlayerSettingButton.clicked) {
+            }
+            if(this.redPlayerSettingButton.clicked) {
                 this.redPlayerSettingButton.clicked = false;
                 if(!this.redPlayerWindow.visible) {
                     this.redPlayerWindow.visible = true;
@@ -98,18 +105,42 @@ export class View {
                     this.redPlayerWindow.visible = false;
                 }
             }
-
-            if(this.yellowPlayerWindow.humanAiSwitch.clicked) {
-                this.yellowPlayerWindow.humanAiSwitch.clicked = false;
-                this.yellowPlayerWindow.humanAiSwitch.toggled = !this.yellowPlayerWindow.humanAiSwitch.toggled;
-            } else if(this.redPlayerWindow.humanAiSwitch.clicked) {
-                this.redPlayerWindow.humanAiSwitch.clicked = false;
-                this.redPlayerWindow.humanAiSwitch.toggled = !this.redPlayerWindow.humanAiSwitch.toggled;
-            }
+            this.yellowPlayerWindow.mouseUp();
+            this.redPlayerWindow.mouseUp();
 
             this.mouse.pressed = false;
             this.mouse.clicked = false;
         });
+    }
+
+    extractPlayer(window, color) {
+        const maximizing = color == Disc.Yellow;
+        if(window.humanAiSwitch.toggled) {
+            
+            const depth = window.depthSlider.getValue();
+            if(window.algorithmDropdown.getValue() == "Minimax") {
+                if(window.evaluationFnDropdown.getValue() == "Line counter") {
+                    const singles = window.rowCtrSinglesSlider.getValue();
+                    const dubs = window.rowCtrDubsSlider.getValue();
+                    const trips = window.rowCtrTripsSlider.getValue();
+                    const quads = window.rowCtrQuadsSlider.getValue();
+
+                    return (board) => minimaxLineCounter(board, maximizing, depth, singles, dubs, trips, quads);
+                }
+                
+            } else if(window.algorithmDropdown.getValue() == "Alpha-beta pruning") {
+                if(window.evaluationFnDropdown.getValue() == "Line counter") {
+                    const singles = window.rowCtrSinglesSlider.getValue();
+                    const dubs = window.rowCtrDubsSlider.getValue();
+                    const trips = window.rowCtrTripsSlider.getValue();
+                    const quads = window.rowCtrQuadsSlider.getValue();
+
+                    return (board) => alphaBetaPruningLineCounter(board, maximizing, depth, singles, dubs, trips, quads);
+                }
+            }
+        } else {
+            return null;
+        }
     }
   
     setUp() {
@@ -193,26 +224,22 @@ export class View {
         const rippleOffsets = this.getRippleOffsets(time);
 
         board.columns.forEach((column, x) => {
-            const pointX = (x + 0.5 + MARGIN) * this.boardUnit;
-
-            this.context.beginPath();
-            this.context.moveTo(pointX, 0.5 * this.boardUnit + rippleOffsets[x]);
-            this.context.lineTo(pointX, (this.boardHeight - 0.5) * this.boardUnit + rippleOffsets[x]);
-            this.context.strokeStyle = "#ffffff";
-            this.context.lineWidth = 1;
-            this.context.stroke();
-
-            column.forEach((disc, y) => {
+            for(var i = 0; i < board.bound; i++) {
+                const disc = column[i];
                 this.context.beginPath();
                 this.context.arc(
                     (x + 0.5 + MARGIN) * this.boardUnit,
-                    (this.boardHeight - y - 0.5) * this.boardUnit + rippleOffsets[x],
-                    discRadius * this.boardUnit,
+                    (this.boardHeight - i - 0.5) * this.boardUnit + rippleOffsets[x],
+                    (disc !== undefined ? discRadius : discRadius * 0.05) * this.boardUnit,
                     0, 2 * Math.PI
                 );
-                this.context.fillStyle = disc == 0 ? '#ebdb34' : '#e74c3c';
+                if(disc !== undefined) {
+                    this.context.fillStyle = disc == 0 ? '#ebdb34' : '#e74c3c';
+                } else {
+                    this.context.fillStyle = '#ffffff';
+                }
                 this.context.fill();
-            });
+            }
         });
 
         if(this.dropPreview !== undefined && this.mouseColumnIndex !== undefined) {
@@ -224,13 +251,12 @@ export class View {
                 0, 2 * Math.PI
             );
             this.context.strokeStyle = this.dropPreview == 0 ? '#ebdb34' : '#e74c3c';
-            this.context.lineWidth = 2;
+            this.context.lineWidth = this.boardUnit * 0.03;
             const circumference = Math.PI * this.boardUnit / 2.5;
             this.context.setLineDash([circumference / 8, circumference / 8]);
             this.context.lineDashOffset = time * 0.01;
             this.context.stroke()
             this.context.setLineDash([]);
-            this.context.lineWidth = 1;
         }
 
         if(board.fourInARow) {
@@ -254,7 +280,6 @@ export class View {
             this.context.lineCap = 'round';
             this.context.strokeStyle = board.columns[x][y] == 0 ? '#ebdb34' : '#e74c3c';
             this.context.stroke();
-            this.context.lineWidth = 1;
         }
 
         this.container.style.cursor = 'default';
