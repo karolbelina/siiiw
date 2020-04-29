@@ -1,10 +1,7 @@
-use wasm_bindgen::prelude::*;
 use super::{Board, Disc};
 
-#[allow(dead_code)]
-#[wasm_bindgen(js_name = rowCounter)]
-pub fn row_counter(singles: i32, doubles: i32, triples: i32, quadruples: i32) -> JsValue {
-    let cb = Closure::wrap(Box::new(move |board: &Board| -> i32 {
+pub fn line_counter(singles: i32, doubles: i32, triples: i32, quadruples: i32) -> Box<dyn Fn(&Board) -> i32> {
+    Box::new(move |board: &Board| -> i32 {
         let count = |position: (usize, usize), direction: (isize, isize)| -> (usize, usize, usize) {
             let mut yellow_count = 0;
             let mut empty_count = 0;
@@ -64,11 +61,5 @@ pub fn row_counter(singles: i32, doubles: i32, triples: i32, quadruples: i32) ->
         }
 
         return total_score;
-    }) as Box<dyn Fn(&Board) -> i32>);
-
-    let js_cb = JsValue::from(cb.as_ref());
-
-    Closure::forget(cb);
-
-    js_cb
+    })
 }

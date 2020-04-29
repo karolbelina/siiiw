@@ -6,7 +6,7 @@ pub trait Node<G: Game>: Sized {
     type Decision: Copy + Debug;
     type Decisions: Iterator<Item=Self::Decision>;
 
-    fn decisions(&self, player: G::Player) -> Self::Decisions;
+    fn decisions(&self, maximizing: bool) -> Self::Decisions;
 
     fn make_decision(&self, decision: Self::Decision) -> Self;
 

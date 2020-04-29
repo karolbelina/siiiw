@@ -198,10 +198,10 @@ impl Node<ConnectFour> for Board {
     type Decision = DiscDrop;
     type Decisions = ValidDrops;
 
-    fn decisions(&self, player: Disc) -> ValidDrops {
+    fn decisions(&self, maximizing: bool) -> ValidDrops {
         ValidDrops {
             board: self.clone(),
-            disc: player,
+            disc: if maximizing { Disc::Yellow } else { Disc::Red },
             current_column: 0,
         }
     }

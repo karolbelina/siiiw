@@ -1,13 +1,13 @@
-use super::{Game, Node, Opponent};
+use super::{Game, Node};
 use std::i32;
 use std::cmp::{min, max};
 
-pub fn minimax<G: Game, F>(node: &G::State, player: G::Player, depth: usize, eval: F)
+pub fn minimax<G: Game, F>(node: &G::State, depth: usize, maximizing: bool, eval: F)
     -> Option<<G::State as Node<G>>::Decision>
 where
     F: Fn(&G::State) -> i32 + Copy
 {
-    fn aux<G: Game, F>(node: &G::State, player: G::Player, depth: usize, maximizing: bool, eval: F) -> i32
+    fn aux<G: Game, F>(node: &G::State, depth: usize, maximizing: bool, eval: F) -> i32
     where
         F: Fn(&G::State) -> i32 + Copy
     {
@@ -16,51 +16,134 @@ where
         }
         if maximizing {
             let mut best = i32::MIN;
-            for decision in node.decisions(player) {
+            for decision in node.decisions(maximizing) {
                 let child = node.make_decision(decision);
-                best = max(best, aux::<G, _>(&child, player.opponent(), depth - 1, false, eval));
+                best = max(best, aux::<G, _>(&child, depth - 1, false, eval));
             }
             return best;
         } else {
             let mut best = i32::MAX;
-            for decision in node.decisions(player) {
+            for decision in node.decisions(maximizing) {
                 let child = node.make_decision(decision);
-                best = min(best, aux::<G, _>(&child, player.opponent(), depth - 1, true, eval));
+                best = min(best, aux::<G, _>(&child, depth - 1, true, eval));
             }
             return best;
         }
     }
 
-    if player == G::maximizing_player() {
-        node.decisions(player)
+    if maximizing {
+        node.decisions(maximizing)
             .max_by_key(|&decision| {
-                aux::<G, _>(&node.make_decision(decision), player.opponent(), depth - 1, false, eval)
+                aux::<G, _>(&node.make_decision(decision), depth, false, eval)
             })
     } else {
-        node.decisions(player)
+        node.decisions(maximizing)
             .min_by_key(|&decision| {
-                aux::<G, _>(&node.make_decision(decision), player.opponent(), depth - 1, true, eval)
+                aux::<G, _>(&node.make_decision(decision), depth, true, eval)
             })
     }
 }
 
-use crate::connectfour::{ConnectFour, Board, Disc, DiscDrop};
+pub fn alpha_beta_pruning<G: Game, F>(node: &G::State, depth: usize, maximizing: bool, eval: F)
+    -> Option<<G::State as Node<G>>::Decision>
+where
+    F: Fn(&G::State) -> i32 + Copy
+{
+    fn aux<G: Game, F>(node: &G::State, depth: usize, mut alpha: i32, mut beta: i32, maximizing: bool, eval: F) -> i32
+    where
+        F: Fn(&G::State) -> i32 + Copy
+    {
+        if depth == 0 || node.is_terminal() {
+            return eval(node);
+        }
+        if maximizing {
+            let mut best = i32::MIN;
+            for decision in node.decisions(maximizing) {
+                let child = node.make_decision(decision);
+                best = max(best, aux::<G, _>(&child, depth - 1, alpha, beta, false, eval));
+                alpha = max(alpha, best);
+                if alpha >= beta {
+                    break;
+                }
+            }
+            return best;
+        } else {
+            let mut best = i32::MAX;
+            for decision in node.decisions(maximizing) {
+                let child = node.make_decision(decision);
+                best = min(best, aux::<G, _>(&child, depth - 1, alpha, beta, true, eval));
+                beta = min(beta, best);
+                if alpha >= beta {
+                    break;
+                }
+            }
+            return best;
+        }
+    }
+
+    let mut alpha = i32::MIN;
+    let mut beta = i32::MAX;
+    let mut best_decision: Option<<G::State as Node<G>>::Decision> = None;
+    if maximizing {
+        let mut best = i32::MIN;
+        for decision in node.decisions(maximizing) {
+            let child = node.make_decision(decision);
+            let value = aux::<G, _>(&child, depth, alpha, beta, false, eval);
+            if value > best {
+                best = value;
+                best_decision = Some(decision);
+            }
+            alpha = max(alpha, best);
+            if alpha >= beta {
+                break;
+            }
+        }
+        return best_decision;
+    } else {
+        let mut best = i32::MAX;
+        for decision in node.decisions(maximizing) {
+            let child = node.make_decision(decision);
+            let value = aux::<G, _>(&child, depth, alpha, beta, true, eval);
+            if value < best {
+                best = value;
+                best_decision = Some(decision);
+            }
+            beta = min(beta, best);
+            if alpha >= beta {
+                break;
+            }
+        }
+        return best_decision;
+    }
+}
+
+use crate::connectfour::{ConnectFour, Board};
 use wasm_bindgen::prelude::*;
-use js_sys;
 
 #[allow(dead_code)]
-#[wasm_bindgen(js_name = minimax)]
-pub fn connect_four_minimax(player: Disc, depth: usize, evalf: js_sys::Function) -> JsValue
+#[wasm_bindgen(js_name = minimaxLineCounter)]
+pub fn connect_four_minimax_row_counter(board: &Board, maximizing: bool, depth: usize, singles: i32, doubles: i32, triples: i32, quadruples: i32) -> usize
 {
-    let cb = Closure::wrap(Box::new(move |board: &Board| -> Option<DiscDrop> {
-        minimax::<ConnectFour, _>(&board, player, depth, |board: &Board| -> i32 {
-            js_sys::Function::call1(&evalf, &JsValue::NULL, &board.clone().into()).unwrap().as_f64().unwrap() as i32
-        })
-    }) as Box<dyn Fn(&Board) -> Option<DiscDrop>>);
+    use crate::connectfour::eval::line_counter;
 
-    let js_cb = JsValue::from(cb.as_ref());
+    minimax::<ConnectFour, _>(
+        &board,
+        depth,
+        maximizing,
+        &line_counter(singles, doubles, triples, quadruples)
+    ).unwrap().column
+}
 
-    Closure::forget(cb);
+#[allow(dead_code)]
+#[wasm_bindgen(js_name = alphaBetaPruningLineCounter)]
+pub fn connect_four_alpha_beta_pruning_row_counter(board: &Board, maximizing: bool, depth: usize, singles: i32, doubles: i32, triples: i32, quadruples: i32) -> usize
+{
+    use crate::connectfour::eval::line_counter;
 
-    js_cb
+    alpha_beta_pruning::<ConnectFour, _>(
+        &board,
+        depth,
+        maximizing,
+        &line_counter(singles, doubles, triples, quadruples)
+    ).unwrap().column
 }
