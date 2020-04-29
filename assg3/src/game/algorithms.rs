@@ -1,6 +1,7 @@
 use super::{Game, Node};
 use std::i32;
 use std::cmp::{min, max};
+use crate::{log, console_log};
 
 pub fn minimax<G: Game, F>(node: &G::State, depth: usize, maximizing: bool, eval: F)
     -> Option<<G::State as Node<G>>::Decision>
@@ -31,16 +32,39 @@ where
         }
     }
 
+    use rand::seq::SliceRandom;
+
+    let mut decisions: Vec<<G::State as Node<G>>::Decision> = Vec::new();
     if maximizing {
-        node.decisions(maximizing)
-            .max_by_key(|&decision| {
-                aux::<G, _>(&node.make_decision(decision), depth, false, eval)
-            })
+        let mut best = i32::MIN;
+        for decision in node.decisions(maximizing) {
+            let child = node.make_decision(decision);
+            let value = aux::<G, _>(&child, depth, false, eval);
+            if value > best {
+                best = value;
+                decisions.clear();
+            }
+            if value >= best {
+                decisions.push(decision);
+            }
+        }
+        console_log!("{:?} -> {}", decisions, best);
+        return decisions.choose(&mut rand::thread_rng()).cloned();
     } else {
-        node.decisions(maximizing)
-            .min_by_key(|&decision| {
-                aux::<G, _>(&node.make_decision(decision), depth, true, eval)
-            })
+        let mut best = i32::MAX;
+        for decision in node.decisions(maximizing) {
+            let child = node.make_decision(decision);
+            let value = aux::<G, _>(&child, depth, true, eval);
+            if value < best {
+                best = value;
+                decisions.clear();
+            }
+            if value <= best {
+                decisions.push(decision);
+            }
+        }
+        console_log!("{:?} -> {}", decisions, best);
+        return decisions.choose(&mut rand::thread_rng()).cloned();
     }
 }
 
@@ -81,9 +105,11 @@ where
         }
     }
 
+    use rand::seq::SliceRandom;
+
     let mut alpha = i32::MIN;
     let mut beta = i32::MAX;
-    let mut best_decision: Option<<G::State as Node<G>>::Decision> = None;
+    let mut decisions: Vec<<G::State as Node<G>>::Decision> = Vec::new();
     if maximizing {
         let mut best = i32::MIN;
         for decision in node.decisions(maximizing) {
@@ -91,14 +117,18 @@ where
             let value = aux::<G, _>(&child, depth, alpha, beta, false, eval);
             if value > best {
                 best = value;
-                best_decision = Some(decision);
+                decisions.clear();
+            }
+            if value >= best {
+                decisions.push(decision);
             }
             alpha = max(alpha, best);
             if alpha >= beta {
                 break;
             }
         }
-        return best_decision;
+        console_log!("{:?} -> {}", decisions, best);
+        return decisions.choose(&mut rand::thread_rng()).cloned();
     } else {
         let mut best = i32::MAX;
         for decision in node.decisions(maximizing) {
@@ -106,14 +136,18 @@ where
             let value = aux::<G, _>(&child, depth, alpha, beta, true, eval);
             if value < best {
                 best = value;
-                best_decision = Some(decision);
+                decisions.clear();
+            }
+            if value <= best {
+                decisions.push(decision);
             }
             beta = min(beta, best);
             if alpha >= beta {
                 break;
             }
         }
-        return best_decision;
+        console_log!("{:?} -> {}", decisions, best);
+        return decisions.choose(&mut rand::thread_rng()).cloned();
     }
 }
 
