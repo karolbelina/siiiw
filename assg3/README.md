@@ -1,10 +1,6 @@
 # assg3
 
-<<<<<<< HEAD
-Check out the most recent live version at [https://karolbelina.github.io/siiiw/assg3/](https://karolbelina.github.io/siiiw/assg3/)
-=======
 Check out the most recent live version at [https://karolbelina.github.io/siiiw/assg3/](https://karolbelina.github.io/siiiw/assg3/).
->>>>>>> Update the readme
 
 ## Installation
 
