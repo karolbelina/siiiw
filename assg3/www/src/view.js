@@ -37,7 +37,7 @@ export class View {
         this.yellowPlayerSettingButton = new Button(this);
         this.redPlayerSettingButton = new Button(this);
         this.yellowPlayerWindow = new Window(this);
-        this.redPlayerWindow = new Window(this);
+        this.redPlayerWindow = new Window(this, true);
   
         window.addEventListener('resize', () => {
             const [child] = this.container.children;
@@ -114,9 +114,8 @@ export class View {
     }
 
     extractPlayer(window, color) {
-        const maximizing = color == Disc.Yellow;
         if(window.humanAiSwitch.toggled) {
-            
+            const maximizing = color == Disc.Yellow;
             const depth = window.depthSlider.getValue();
             if(window.algorithmDropdown.getValue() == "Minimax") {
                 if(window.evaluationFnDropdown.getValue() == "Line counter") {
@@ -160,7 +159,7 @@ export class View {
     calculateRipple(column) {
         var ripple = []
         const t0 = performance.now() - this.startTime;
-        const A = 10;
+        const A = 0.082;
         const w = 0.02;
         const b = 0.1;
         for(var x = 0; x < this.boardWidth; x++) {
@@ -229,7 +228,7 @@ export class View {
                 this.context.beginPath();
                 this.context.arc(
                     (x + 0.5 + MARGIN) * this.boardUnit,
-                    (this.boardHeight - i - 0.5) * this.boardUnit + rippleOffsets[x],
+                    (this.boardHeight - i - 0.5 + rippleOffsets[x]) * this.boardUnit,
                     (disc !== undefined ? discRadius : discRadius * 0.05) * this.boardUnit,
                     0, 2 * Math.PI
                 );
@@ -266,14 +265,14 @@ export class View {
             var y = position[1];
             this.context.moveTo(
                 (x + 0.5 + MARGIN) * this.boardUnit,
-                (this.boardHeight - 1 - y + 0.5) * this.boardUnit + rippleOffsets[x]
+                (this.boardHeight - 1 - y + 0.5 + rippleOffsets[x]) * this.boardUnit
             );
             for(var i = 1; i < 4; i++) {
                 x += direction[0];
                 y += direction[1];
                 this.context.lineTo(
                     (x + 0.5 + MARGIN) * this.boardUnit,
-                    (this.boardHeight - 1 - y + 0.5) * this.boardUnit + rippleOffsets[x]
+                    (this.boardHeight - 1 - y + 0.5 + rippleOffsets[x]) * this.boardUnit
                 );
             }
             this.context.lineWidth = 2 * discRadius * this.boardUnit;

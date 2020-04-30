@@ -92,22 +92,25 @@ export class Button {
 const WINDOW_ANIMATION_DURATION = 5;
 
 export class Window {
-    constructor(view) {
+    constructor(view, aiSwitchToggled = false) {
         this.view = view;
         this.visible = false;
         this.openFrame = 0;
         this.aiExtendFrame = 0;
         this.humanAiSwitch = new Switch(this.view);
-        this.algorithmDropdown = new Dropdown(this.view, ["Minimax", "Alpha-beta pruning"]);
-        this.depthSlider = new Slider(this.view, x => Math.floor(x * 10), 0.5);
+        this.algorithmDropdown = new Dropdown(this.view, ["Minimax", "Alpha-beta pruning"], 1);
+        this.depthSlider = new Slider(this.view, x => Math.floor(x * 10), 0.45);
         this.evaluationFnDropdown = new Dropdown(this.view, ["Line counter"]);
         const a = 0.8
         const p = 10
         const rowCtrSliderFn = x => Math.floor(Math.pow(x + a, p) * 1000 / Math.pow(1 + a, p));
         this.rowCtrQuadsSlider = new Slider(this.view, rowCtrSliderFn, 1);
-        this.rowCtrTripsSlider = new Slider(this.view, rowCtrSliderFn, 0.39);
-        this.rowCtrDubsSlider = new Slider(this.view, rowCtrSliderFn, 0.3);
+        this.rowCtrTripsSlider = new Slider(this.view, rowCtrSliderFn, 0.44);
+        this.rowCtrDubsSlider = new Slider(this.view, rowCtrSliderFn, 0.32);
         this.rowCtrSinglesSlider = new Slider(this.view, rowCtrSliderFn, 0);
+        if(aiSwitchToggled) {
+            this.humanAiSwitch.toggled = true;
+        }
     }
 
     mouseUp() {
@@ -357,11 +360,11 @@ class Switch {
 const DROPDOWN_ANIMATION_DURATION = 5;
 
 class Dropdown {
-    constructor(view, options) {
+    constructor(view, options, initialOption = 0) {
         this.view = view;
         this.clicked = false;
         this.options = options;
-        this.selected = 0;
+        this.selected = initialOption;
         this.frame = 0;
     }
 

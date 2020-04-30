@@ -38,7 +38,7 @@ pub fn line_counter(singles: i32, doubles: i32, triples: i32, quadruples: i32) -
         };
 
         let (width, height) = (board.columns.len(), board.bound);
-        let mut total_score = 0;
+        let mut total_score: i32 = 0;
         
         // evaluate columns
         for x in 0..width { // [0, 6]
