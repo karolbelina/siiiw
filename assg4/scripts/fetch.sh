@@ -1,6 +1,8 @@
 #!/bin/bash
-curl -o temp/train.zip http://hdl.handle.net/11321/738
-curl -o temp/test.zip http://hdl.handle.net/11321/738
+mkdir -p temp
+
+curl -o temp/train.zip https://clarin-pl.eu/dspace/bitstream/handle/11321/738/wiki_train_34_categories_data.zip
+curl -o temp/test.zip https://clarin-pl.eu/dspace/bitstream/handle/11321/739/wiki_test_34_categories_data.zip
 
 unzip -q temp/train.zip -d temp/train/
 unzip -q temp/test.zip -d temp/test/
