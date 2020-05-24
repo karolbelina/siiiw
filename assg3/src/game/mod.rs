@@ -1,4 +1,4 @@
-mod algorithms;
+pub mod algorithms;
 
 use std::fmt::Debug;
 

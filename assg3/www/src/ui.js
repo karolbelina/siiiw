@@ -100,14 +100,17 @@ export class Window {
         this.humanAiSwitch = new Switch(this.view);
         this.algorithmDropdown = new Dropdown(this.view, ["Minimax", "Alpha-beta pruning"], 1);
         this.depthSlider = new Slider(this.view, x => Math.floor(x * 10), 0.45);
-        this.evaluationFnDropdown = new Dropdown(this.view, ["Line counter"]);
+        this.evaluationFnDropdown = new Dropdown(this.view, ["Basic", "Line counter", "Advanced"], 2);
         const a = 0.8
         const p = 10
-        const rowCtrSliderFn = x => Math.floor(Math.pow(x + a, p) * 1000 / Math.pow(1 + a, p));
-        this.rowCtrQuadsSlider = new Slider(this.view, rowCtrSliderFn, 1);
-        this.rowCtrTripsSlider = new Slider(this.view, rowCtrSliderFn, 0.44);
-        this.rowCtrDubsSlider = new Slider(this.view, rowCtrSliderFn, 0.32);
-        this.rowCtrSinglesSlider = new Slider(this.view, rowCtrSliderFn, 0);
+        const pointsFn = x => Math.floor(Math.pow(x + a, p) * 1000 / Math.pow(1 + a, p));
+        this.rowCtrQuadsSlider = new Slider(this.view, pointsFn, 1);
+        this.rowCtrTripsSlider = new Slider(this.view, pointsFn, 0.44);
+        this.rowCtrDubsSlider = new Slider(this.view, pointsFn, 0.32);
+        this.rowCtrSinglesSlider = new Slider(this.view, pointsFn, 0);
+        this.advancedTripsSlider = new Slider(this.view, pointsFn, 0.44);
+        this.advancedDubsSlider = new Slider(this.view, pointsFn, 0.32);
+        this.advancedCentersSlider = new Slider(this.view, pointsFn, 0.2);
         if(aiSwitchToggled) {
             this.humanAiSwitch.toggled = true;
         }
@@ -220,41 +223,70 @@ export class Window {
                         y + 4 * lineHeight,
                     );
 
-                    this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
-                    this.view.context.fillStyle = '#2c3e50';
-                    this.view.context.fillText("Quadruples", labelsX, y + 5 * lineHeight);
-                    this.rowCtrQuadsSlider.render(
-                        componentsX,
-                        y + 5 * lineHeight,
-                        this.evaluationFnDropdown.width()
-                    );
+                    if(this.evaluationFnDropdown.getValue() == "Line counter") {
+                        this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
+                        this.view.context.fillStyle = '#2c3e50';
+                        this.view.context.fillText("Quadruples", labelsX, y + 5 * lineHeight);
+                        this.rowCtrQuadsSlider.render(
+                            componentsX,
+                            y + 5 * lineHeight,
+                            this.evaluationFnDropdown.width()
+                        );
 
-                    this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
-                    this.view.context.fillStyle = '#2c3e50';
-                    this.view.context.fillText("Triples", labelsX, y + 6 * lineHeight);
-                    this.rowCtrTripsSlider.render(
-                        componentsX,
-                        y + 6 * lineHeight,
-                        this.evaluationFnDropdown.width()
-                    );
+                        this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
+                        this.view.context.fillStyle = '#2c3e50';
+                        this.view.context.fillText("Triples", labelsX, y + 6 * lineHeight);
+                        this.rowCtrTripsSlider.render(
+                            componentsX,
+                            y + 6 * lineHeight,
+                            this.evaluationFnDropdown.width()
+                        );
 
-                    this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
-                    this.view.context.fillStyle = '#2c3e50';
-                    this.view.context.fillText("Doubles", labelsX, y + 7 * lineHeight);
-                    this.rowCtrDubsSlider.render(
-                        componentsX,
-                        y + 7 * lineHeight,
-                        this.evaluationFnDropdown.width()
-                    );
+                        this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
+                        this.view.context.fillStyle = '#2c3e50';
+                        this.view.context.fillText("Doubles", labelsX, y + 7 * lineHeight);
+                        this.rowCtrDubsSlider.render(
+                            componentsX,
+                            y + 7 * lineHeight,
+                            this.evaluationFnDropdown.width()
+                        );
 
-                    this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
-                    this.view.context.fillStyle = '#2c3e50';
-                    this.view.context.fillText("Singles", labelsX, y + 8 * lineHeight);
-                    this.rowCtrSinglesSlider.render(
-                        componentsX,
-                        y + 8 * lineHeight,
-                        this.evaluationFnDropdown.width()
-                    );
+                        this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
+                        this.view.context.fillStyle = '#2c3e50';
+                        this.view.context.fillText("Singles", labelsX, y + 8 * lineHeight);
+                        this.rowCtrSinglesSlider.render(
+                            componentsX,
+                            y + 8 * lineHeight,
+                            this.evaluationFnDropdown.width()
+                        );
+                    } else if(this.evaluationFnDropdown.getValue() == "Advanced") {
+                        this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
+                        this.view.context.fillStyle = '#2c3e50';
+                        this.view.context.fillText("Triples", labelsX, y + 5 * lineHeight);
+                        this.advancedTripsSlider.render(
+                            componentsX,
+                            y + 5 * lineHeight,
+                            this.evaluationFnDropdown.width()
+                        );
+
+                        this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
+                        this.view.context.fillStyle = '#2c3e50';
+                        this.view.context.fillText("Doubles", labelsX, y + 6 * lineHeight);
+                        this.advancedDubsSlider.render(
+                            componentsX,
+                            y + 6 * lineHeight,
+                            this.evaluationFnDropdown.width()
+                        );
+
+                        this.view.context.font = `bold ${this.view.hudUnit * 0.25}px Anonymous Pro`
+                        this.view.context.fillStyle = '#2c3e50';
+                        this.view.context.fillText("Centers", labelsX, y + 7 * lineHeight);
+                        this.advancedCentersSlider.render(
+                            componentsX,
+                            y + 7 * lineHeight,
+                            this.evaluationFnDropdown.width()
+                        );
+                    }
                 }
             }
         }

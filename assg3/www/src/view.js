@@ -1,4 +1,4 @@
-import { Disc, minimaxLineCounter, alphaBetaPruningLineCounter } from 'assg3';
+import { Disc, minimaxBasic, minimaxLineCounter, minimaxAdvanced, alphaBetaPruningBasic, alphaBetaPruningLineCounter, alphaBetaPruningAdvanced } from 'assg3';
 import { Button, Window } from './ui';
 
 const MARGIN = 1;
@@ -118,23 +118,38 @@ export class View {
             const maximizing = color == Disc.Yellow;
             const depth = window.depthSlider.getValue();
             if(window.algorithmDropdown.getValue() == "Minimax") {
-                if(window.evaluationFnDropdown.getValue() == "Line counter") {
+                if(window.evaluationFnDropdown.getValue() == "Basic") {
+                    return (board) => minimaxBasic(board, maximizing, depth);
+                } else if(window.evaluationFnDropdown.getValue() == "Line counter") {
                     const singles = window.rowCtrSinglesSlider.getValue();
                     const dubs = window.rowCtrDubsSlider.getValue();
                     const trips = window.rowCtrTripsSlider.getValue();
                     const quads = window.rowCtrQuadsSlider.getValue();
 
                     return (board) => minimaxLineCounter(board, maximizing, depth, singles, dubs, trips, quads);
+                } else if(window.evaluationFnDropdown.getValue() == "Advanced") {
+                    const dubs = window.rowCtrDubsSlider.getValue();
+                    const trips = window.rowCtrTripsSlider.getValue();
+                    const centers = window.rowCtrCentersSlider.getValue();
+
+                    return (board) => minimaxLineCounter(board, maximizing, depth, dubs, trips, centers);
                 }
-                
             } else if(window.algorithmDropdown.getValue() == "Alpha-beta pruning") {
-                if(window.evaluationFnDropdown.getValue() == "Line counter") {
+                if(window.evaluationFnDropdown.getValue() == "Basic") {
+                    return (board) => alphaBetaPruningBasic(board, maximizing, depth);
+                } else if(window.evaluationFnDropdown.getValue() == "Line counter") {
                     const singles = window.rowCtrSinglesSlider.getValue();
                     const dubs = window.rowCtrDubsSlider.getValue();
                     const trips = window.rowCtrTripsSlider.getValue();
                     const quads = window.rowCtrQuadsSlider.getValue();
 
                     return (board) => alphaBetaPruningLineCounter(board, maximizing, depth, singles, dubs, trips, quads);
+                } else if(window.evaluationFnDropdown.getValue() == "Advanced") {
+                    const dubs = window.advancedDubsSlider.getValue();
+                    const trips = window.advancedTripsSlider.getValue();
+                    const centers = window.advancedCentersSlider.getValue();
+
+                    return (board) => alphaBetaPruningAdvanced(board, maximizing, depth, dubs, trips, centers);
                 }
             }
         } else {
