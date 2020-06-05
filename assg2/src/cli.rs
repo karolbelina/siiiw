@@ -18,8 +18,8 @@ use std::fmt;
 impl fmt::Debug for Algorithm {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Algorithm::Backtracking => write!(f, "backtracking"),
-            Algorithm::ForwardChecking => write!(f, "forward-checking")
+            Algorithm::Backtracking => write!(f, "bt"),
+            Algorithm::ForwardChecking => write!(f, "fc")
         }
     }
 }
@@ -27,9 +27,9 @@ impl fmt::Debug for Algorithm {
 impl fmt::Debug for VariableSelector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            VariableSelector::OrderOfDefinition => write!(f, "order of definition"),
-            VariableSelector::MostConstrainedVariable => write!(f, "most constrained variable"),
-            VariableSelector::Random => write!(f, "random")
+            VariableSelector::OrderOfDefinition => write!(f, "def"),
+            VariableSelector::MostConstrainedVariable => write!(f, "mcv"),
+            VariableSelector::Random => write!(f, "rand")
         }
     }
 }
@@ -37,10 +37,10 @@ impl fmt::Debug for VariableSelector {
 impl fmt::Debug for ValueSelector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValueSelector::OrderOfDefinition => write!(f, "order of definition"),
-            ValueSelector::LeastConstrainingValue => write!(f, "least constraining value"),
-            ValueSelector::LeastOccuringValue => write!(f, "least occuring value"),
-            ValueSelector::Random => write!(f, "random")
+            ValueSelector::OrderOfDefinition => write!(f, "def"),
+            ValueSelector::LeastConstrainingValue => write!(f, "lcv"),
+            ValueSelector::LeastOccuringValue => write!(f, "lov"),
+            ValueSelector::Random => write!(f, "rand")
         }
     }
 }
@@ -50,13 +50,13 @@ pub struct Config {
     #[structopt(flatten)]
     pub verbosity: clap_verbosity_flag::Verbosity,
     /// The algorithm used to find solutions to the problem
-    #[structopt(short = "a", name = "ALGORITHM", parse(try_from_str = parse_algorithm))]
+    #[structopt(short = "a", name = "ALGORITHM", parse(try_from_str = parse_algorithm), possible_values = &["bt", "fc"])]
     pub algorithm: Algorithm,
     /// The variable selection heuristic
-    #[structopt(short = "r", name = "VARIABLE SELECTION HEURISTIC", parse(try_from_str = variable_selection_heuristic))]
+    #[structopt(short = "r", name = "VARIABLE SELECTION HEURISTIC", parse(try_from_str = variable_selection_heuristic), possible_values = &["def", "mcv", "rand"])]
     pub variable_selection_heuristic: VariableSelector,
     /// The value selection heuristic
-    #[structopt(short = "l", name = "VALUE SELECTION HEURISTIC", parse(try_from_str = value_selection_heuristic))]
+    #[structopt(short = "l", name = "VALUE SELECTION HEURISTIC", parse(try_from_str = value_selection_heuristic), possible_values = &["def", "lcv", "lov", "rand"])]
     pub value_selection_heuristic: ValueSelector,
     #[structopt(subcommand)]
     pub problem: Problem,
